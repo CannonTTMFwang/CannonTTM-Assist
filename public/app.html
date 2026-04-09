@@ -1,1 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hollywood Galaxy — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08080a;--s1:#0f0f12;--s2:#141418;--s3:#1a1a20;--s4:#202028;--s5:#262630;
+  --b1:rgba(255,255,255,0.055);--b2:rgba(255,255,255,0.10);--b3:rgba(255,255,255,0.18);
+  --tx:#ede9e0;--t2:#9d9aa4;--t3:#5c5a63;--t4:#3a3840;
+  --gold:#d4a843;--gold2:#b8902e;--gold-bg:rgba(212,168,67,0.08);--gold-b:rgba(212,168,67,0.18);
+  --red:#d95f5f;--red-bg:rgba(217,95,95,0.09);--red-b:rgba(217,95,95,0.22);
+  --amber:#d4932a;--amber-bg:rgba(212,147,42,0.09);--amber-b:rgba(212,147,42,0.22);
+  --blue:#5a90e0;--blue-bg:rgba(90,144,224,0.09);--blue-b:rgba(90,144,224,0.22);
+  --green:#4db87a;--green-bg:rgba(77,184,122,0.09);--green-b:rgba(77,184,122,0.22);
+  --teal:#3bbfb8;--teal-bg:rgba(59,191,184,0.09);
+  --purple:#9b7fe8;--purple-bg:rgba(155,127,232,0.09);
+  --chat-w:400px;--sb-w:196px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.55;display:flex;flex-direction:column;}
+
+/* ── HEADER ── */
+.hdr{height:50px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0;z-index:30;}
+.hdr-logo{font-family:'Instrument Serif',serif;font-size:17px;color:var(--gold);letter-spacing:.01em;}
+.hdr-div{width:1px;height:16px;background:var(--b2);}
+.hdr-tag{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);letter-spacing:.06em;}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.sync-row{display:flex;align-items:center;gap:5px;font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--t4);transition:all .3s;}
+.ldot.on{background:var(--green);box-shadow:0 0 5px rgba(77,184,122,.5);}
+.ldot.pulse{background:var(--amber);animation:dp 1s infinite;}
+@keyframes dp{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hbtn{padding:5px 11px;border-radius:5px;font-size:11px;cursor:pointer;transition:all .14s;border:1px solid var(--b2);color:var(--t2);background:var(--s2);font-family:'DM Sans',sans-serif;}
+.hbtn:hover{border-color:var(--b3);color:var(--tx);}
+.hbtn.gold{background:var(--gold);color:#08080a;border-color:var(--gold);font-weight:500;}
+.hbtn.gold:hover{background:var(--gold2);}
+.upill{display:flex;align-items:center;gap:6px;padding:3px 9px 3px 4px;border-radius:20px;border:1px solid var(--b1);background:var(--s2);cursor:pointer;}
+.uav{width:22px;height:22px;border-radius:50%;background:var(--gold-bg);border:1px solid var(--gold-b);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--gold);font-family:'DM Mono',monospace;}
+.unm{font-size:11px;color:var(--t2);}
+
+/* ── LAYOUT ── */
+.layout{display:flex;flex:1;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sb{width:var(--sb-w);flex-shrink:0;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto;padding-bottom:12px;}
+.ns{padding:14px 10px 5px;}
+.nsl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.12em;color:var(--t3);padding:0 7px;margin-bottom:5px;text-transform:uppercase;}
+.ni{display:flex;align-items:center;gap:7px;padding:6px 7px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--t2);transition:all .13s;border:1px solid transparent;}
+.ni:hover{background:var(--s3);color:var(--tx);}
+.ni.act{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-b);}
+.nd{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.nc{margin-left:auto;font-size:9px;font-family:'DM Mono',monospace;background:var(--s4);padding:1px 5px;border-radius:8px;color:var(--t3);}
+.ni.act .nc{background:var(--gold-bg);color:var(--gold2);}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.mscroll{flex:1;overflow-y:auto;padding:18px 20px;}
+
+/* ── BOARD HEADER ── */
+.bh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.bt{font-family:'Instrument Serif',serif;font-size:19px;}
+.bs{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);margin-top:1px;}
+
+/* ── STATS ── */
+.sgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-bottom:16px;}
+.sc{background:var(--s1);border:1px solid var(--b1);border-radius:7px;padding:11px 13px;cursor:pointer;transition:all .14s;}
+.sc:hover{border-color:var(--b2);}
+.sc.af{border-color:var(--gold);background:var(--gold-bg);}
+.sl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.09em;color:var(--t3);margin-bottom:3px;text-transform:uppercase;}
+.sn{font-family:'Instrument Serif',serif;font-size:22px;}
+.cr{color:var(--red)}.ca{color:var(--amber)}.cb{color:var(--blue)}.cg{color:var(--green)}.cm{color:var(--t3)}
+
+/* ── FILTER BAR ── */
+.fb{display:flex;gap:5px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.chip{padding:4px 9px;border-radius:14px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer;border:1px solid var(--b1);color:var(--t3);background:transparent;transition:all .13s;}
+.chip:hover{border-color:var(--b2);color:var(--t2);}
+.chip.on{border-color:var(--gold);color:var(--gold);background:var(--gold-bg);}
+.fsp{width:1px;height:13px;background:var(--b2);margin:0 2px;}
+.srch{position:relative;flex:1;max-width:200px;}
+.srch input{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:5px 8px 5px 24px;font-size:11px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .14s;}
+.srch input::placeholder{color:var(--t3);}
+.srch input:focus{border-color:var(--b2);}
+.sico{position:absolute;left:7px;top:50%;transform:translateY(-50%);width:11px;height:11px;color:var(--t3);pointer-events:none;}
+
+/* ── SECTION DIVIDER ── */
+.sdv{display:flex;align-items:center;gap:8px;margin:14px 0 7px;}
+.sdl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.1em;color:var(--t3);text-transform:uppercase;white-space:nowrap;}
+.sdln{flex:1;height:1px;background:var(--b1);}
+
+/* ── ITEM CARD ── */
+.ic{background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:13px 15px 12px;margin-bottom:7px;position:relative;overflow:hidden;transition:border-color .14s;}
+.ic::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2.5px;border-radius:9px 0 0 9px;}
+.ic.critical::before{background:var(--red);}
+.ic.high::before{background:var(--amber);}
+.ic.normal::before{background:var(--blue);}
+.ic.low::before{background:var(--t3);}
+.ic:hover{border-color:var(--b2);}
+.ic.done-c{opacity:.35;}
+.ic.done-c .ict{text-decoration:line-through;text-decoration-color:var(--t3);}
+.itop{display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap;}
+.ub{font-size:8px;font-family:'DM Mono',monospace;letter-spacing:.1em;padding:2px 5px;border-radius:3px;font-weight:500;text-transform:uppercase;}
+.ub-critical{background:var(--red-bg);color:var(--red);}
+.ub-high{background:var(--amber-bg);color:var(--amber);}
+.ub-normal{background:var(--blue-bg);color:var(--blue);}
+.ub-low{background:rgba(92,90,99,.15);color:var(--t3);}
+.catb{font-size:9px;padding:2px 6px;border-radius:3px;font-family:'DM Mono',monospace;}
+.cat-safety{background:var(--red-bg);color:#d08080;}
+.cat-vendor{background:var(--amber-bg);color:#c09030;}
+.cat-deal{background:var(--purple-bg);color:var(--purple);}
+.cat-parking{background:var(--teal-bg);color:var(--teal);}
+.cat-leasing{background:var(--green-bg);color:var(--green);}
+.cat-internal{background:rgba(92,90,99,.1);color:var(--t3);}
+.isrc{margin-left:auto;font-size:9px;color:var(--t3);font-family:'DM Mono',monospace;}
+.ict{font-size:13px;font-weight:500;color:var(--tx);margin-bottom:4px;line-height:1.3;}
+.ism{font-size:11px;color:var(--t2);line-height:1.55;margin-bottom:7px;}
+
+/* ── INLINE ACTION BUTTON (the key new feature) ── */
+.inline-action{display:inline-flex;align-items:center;gap:5px;margin-bottom:9px;font-size:11px;color:var(--blue);font-family:'DM Mono',monospace;cursor:pointer;border:none;background:none;padding:0;text-decoration:none;transition:color .13s;}
+.inline-action:hover{color:var(--gold);}
+.inline-action::before{content:'→ ';color:var(--blue);}
+.inline-action:hover::before{color:var(--gold);}
+
+/* ── CARD ACTION BUTTON (big CTA) ── */
+.card-action-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;border:1px solid var(--b2);color:var(--tx);background:var(--s2);transition:all .15s;margin-top:2px;}
+.card-action-btn:hover{background:var(--s3);border-color:var(--b3);}
+.card-action-btn .arr{font-size:13px;opacity:.6;}
+.card-action-btn.loading{opacity:.6;cursor:wait;}
+
+/* ── CARD FOOTER ── */
+.ifoo{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--b1);}
+.ibts{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
+.ibtn{padding:3px 7px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid var(--b2);color:var(--t2);background:transparent;font-family:'DM Sans',sans-serif;transition:all .13s;}
+.ibtn:hover{border-color:var(--b3);color:var(--tx);}
+.ibtn.gd{background:var(--gold-bg);border-color:var(--gold-b);color:var(--gold);}
+.ibtn.ai{background:var(--blue-bg);border-color:var(--blue-b);color:var(--blue);}
+.ss{appearance:none;background:var(--s3);border:1px solid var(--b1);border-radius:4px;padding:3px 20px 3px 6px;font-size:10px;color:var(--t2);font-family:'DM Mono',monospace;cursor:pointer;outline:none;background-image:url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L4 4L7 1' stroke='%235c5a63' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center;}
+.ss.s-open{color:var(--blue)}.ss.s-inprogress{color:var(--amber)}.ss.s-done{color:var(--green)}.ss.s-escalated{color:var(--red)}.ss.s-waiting{color:var(--purple)}
+.nb{margin-top:7px;padding:6px 9px;background:var(--s3);border-radius:4px;border:1px solid var(--b1);font-size:10px;color:var(--t2);font-family:'DM Mono',monospace;line-height:1.5;}
+.nby{color:var(--gold);margin-right:4px;}
+.empty-s{text-align:center;padding:36px 20px;color:var(--t3);font-family:'DM Mono',monospace;font-size:11px;}
+
+/* ── CHAT PANEL ── */
+.chat{width:var(--chat-w);flex-shrink:0;background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;}
+.chdr{padding:12px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:9px;flex-shrink:0;}
+.chico{width:26px;height:26px;border-radius:6px;background:var(--gold-bg);border:1px solid var(--gold-b);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chico svg{width:13px;height:13px;color:var(--gold);}
+.chnm{font-size:12px;font-weight:500;}
+.chsub{font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;}
+.conn-bar{padding:5px 12px;border-bottom:1px solid var(--b1);display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;background:var(--bg);}
+.conn{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:8px;font-size:9px;font-family:'DM Mono',monospace;border:1px solid var(--green-b);color:var(--green);background:var(--green-bg);}
+.conn-dot{width:4px;height:4px;border-radius:50%;background:currentColor;}
+
+.cmsgs{flex:1;overflow-y:auto;padding:12px 12px 6px;}
+.msg{margin-bottom:9px;display:flex;flex-direction:column;gap:2px;animation:fu .18s ease;}
+@keyframes fu{from{opacity:0;transform:translateY(5px);}to{opacity:1;}}
+.msg.user{align-items:flex-end;}
+.msg.ai{align-items:flex-start;}
+.bubble{max-width:93%;padding:8px 11px;border-radius:7px;font-size:12px;line-height:1.55;}
+.msg.user .bubble{background:var(--gold-bg);border:1px solid var(--gold-b);border-radius:7px 7px 2px 7px;}
+.msg.ai .bubble{background:var(--s3);border:1px solid var(--b1);border-radius:7px 7px 7px 2px;}
+.mtime{font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);padding:0 3px;}
+.bubble code{font-family:'DM Mono',monospace;font-size:10px;background:var(--s4);padding:1px 4px;border-radius:3px;color:var(--gold);}
+.bubble strong{font-weight:500;color:var(--gold);}
+.bubble ul,.bubble ol{margin:4px 0 4px 16px;}
+.bubble li{margin-bottom:2px;}
+.bubble hr{border:none;border-top:1px solid var(--b2);margin:8px 0;}
+
+/* ── TOOL CALL CARD ── */
+.tc{margin:5px 0;background:var(--s2);border:1px solid var(--b2);border-radius:6px;overflow:hidden;max-width:95%;font-size:11px;}
+.tc-head{display:flex;align-items:center;gap:6px;padding:7px 9px;background:var(--s3);}
+.tc-ico{width:17px;height:17px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;}
+.tc-ico.outlook{background:var(--blue-bg);color:var(--blue);}
+.tc-ico.slack{background:rgba(74,21,75,.2);color:#c084fc;}
+.tc-ico.gmail{background:var(--red-bg);color:var(--red);}
+.tc-ico.cal{background:var(--green-bg);color:var(--green);}
+.tc-ico.system{background:var(--gold-bg);color:var(--gold);}
+.tc-name{font-family:'DM Mono',monospace;font-size:10px;color:var(--t2);}
+.tc-st{margin-left:auto;font-size:9px;font-family:'DM Mono',monospace;}
+.tc-st.run{color:var(--amber);}
+.tc-st.ok{color:var(--green);}
+.tc-st.err{color:var(--red);}
+.tc-body{padding:7px 9px;font-family:'DM Mono',monospace;font-size:10px;color:var(--t2);line-height:1.5;max-height:100px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;}
+.tc-spin{display:inline-block;width:8px;height:8px;border:1.5px solid var(--b2);border-top-color:var(--amber);border-radius:50%;animation:sp .7s linear infinite;margin-right:3px;vertical-align:middle;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* ── APPROVAL CARD ── */
+.apc{margin:6px 0;background:var(--s2);border:1px solid var(--amber-b);border-radius:8px;overflow:hidden;max-width:95%;}
+.apc-head{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--amber-bg);border-bottom:1px solid var(--amber-b);}
+.apc-title{font-size:11px;font-weight:500;color:var(--amber);}
+.apc-badge{margin-left:auto;font-size:8px;font-family:'DM Mono',monospace;background:var(--amber-bg);border:1px solid var(--amber-b);color:var(--amber);padding:1px 5px;border-radius:3px;letter-spacing:.08em;}
+.apc-body{padding:10px 12px;}
+.apc-desc{font-size:11px;color:var(--tx);line-height:1.55;margin-bottom:8px;}
+.apc-preview{background:var(--s3);border-radius:5px;padding:9px 10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--t2);line-height:1.6;margin-bottom:10px;max-height:160px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;border:1px solid var(--b1);}
+.apc-acts{display:flex;gap:6px;}
+.apbtn{padding:5px 12px;border-radius:5px;font-size:11px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .14s;}
+.apbtn.approve{background:var(--green);color:#08080a;}
+.apbtn.approve:hover{background:#3da86a;}
+.apbtn.edit-btn{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-b);}
+.apbtn.reject{background:var(--s4);color:var(--t2);border:1px solid var(--b2);}
+.apbtn:disabled{opacity:.4;cursor:not-allowed;}
+.apc-result{font-size:10px;font-family:'DM Mono',monospace;padding:5px 9px;border-radius:4px;margin-top:7px;}
+.apc-result.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);}
+.apc-result.fail{background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);}
+
+/* ── TYPING ── */
+.typing{display:flex;align-items:center;gap:3px;padding:7px 10px;background:var(--s3);border:1px solid var(--b1);border-radius:7px 7px 7px 2px;width:fit-content;}
+.typing span{width:4px;height:4px;border-radius:50%;background:var(--t2);animation:tb 1.2s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}
+.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes tb{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-4px);}}
+
+/* ── QUICK PROMPTS ── */
+.qps{padding:7px 11px;border-top:1px solid var(--b1);display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;}
+.qp{padding:3px 8px;border-radius:10px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer;border:1px solid var(--b1);color:var(--t3);background:transparent;transition:all .13s;white-space:nowrap;}
+.qp:hover{border-color:var(--gold-b);color:var(--gold);}
+
+/* ── INPUT ── */
+.cinp{padding:9px 11px 12px;border-top:1px solid var(--b1);flex-shrink:0;}
+.crow{display:flex;gap:6px;align-items:flex-end;}
+.crow textarea{flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:6px;padding:7px 9px;font-size:12px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;resize:none;max-height:90px;transition:border-color .14s;line-height:1.4;}
+.crow textarea::placeholder{color:var(--t3);}
+.crow textarea:focus{border-color:var(--b3);}
+.sbtn{width:30px;height:30px;border-radius:5px;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .14s;}
+.sbtn:hover{background:var(--gold2);}
+.sbtn:disabled{opacity:.4;cursor:not-allowed;}
+.sbtn svg{width:13px;height:13px;color:#08080a;}
+.chint{font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);margin-top:4px;text-align:center;}
+
+/* ── MODALS ── */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;}
+.mbg.open{display:flex;}
+.modal{background:var(--s2);border:1px solid var(--b2);border-radius:9px;padding:20px;width:430px;max-width:92vw;}
+.mtitle{font-family:'Instrument Serif',serif;font-size:15px;margin-bottom:3px;}
+.msub{font-size:11px;color:var(--t2);margin-bottom:14px;}
+.mi{width:100%;background:var(--s3);border:1px solid var(--b1);border-radius:5px;padding:7px 9px;font-size:12px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;margin-bottom:7px;transition:border-color .14s;}
+.mi:focus{border-color:var(--b2);}
+.mi2{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.macts{display:flex;gap:7px;justify-content:flex-end;margin-top:12px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:18px;right:18px;background:var(--s3);border:1px solid var(--b2);border-radius:7px;padding:8px 13px;font-size:11px;color:var(--tx);font-family:'DM Mono',monospace;z-index:999;transform:translateY(46px);opacity:0;transition:all .22s ease;pointer-events:none;max-width:260px;}
+.toast.on{transform:translateY(0);opacity:1;}
+
+.scursor{display:inline-block;width:2px;height:11px;background:var(--gold);margin-left:1px;animation:bl .9s step-end infinite;vertical-align:text-bottom;}
+@keyframes bl{0%,100%{opacity:1;}50%{opacity:0;}}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--s4);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-logo">Hollywood Galaxy</div>
+  <div class="hdr-div"></div>
+  <div class="hdr-tag">7021 HOLLYWOOD BLVD · COMMAND CENTER</div>
+  <div class="hdr-r">
+    <div class="sync-row"><div class="ldot on" id="ldot"></div><span id="slbl">Live</span></div>
+    <button class="hbtn" onclick="exportCSV()">Export</button>
+    <button class="hbtn gold" id="syncbtn" onclick="startSync()">Sync Outlook</button>
+    <div class="upill" onclick="changeUser()">
+      <div class="uav" id="uav">FW</div>
+      <span class="unm" id="unm">Frank Wang</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sb">
+  <div class="ns">
+    <div class="nsl">Views</div>
+    <div class="ni act" onclick="sv('all',this)"><div class="nd" style="background:var(--gold)"></div>All items<span class="nc" id="nc-all">0</span></div>
+    <div class="ni" onclick="sv('open',this)"><div class="nd" style="background:var(--blue)"></div>Open<span class="nc" id="nc-open">0</span></div>
+    <div class="ni" onclick="sv('inprogress',this)"><div class="nd" style="background:var(--amber)"></div>In progress<span class="nc" id="nc-inp">0</span></div>
+    <div class="ni" onclick="sv('escalated',this)"><div class="nd" style="background:var(--red)"></div>Escalated<span class="nc" id="nc-esc">0</span></div>
+    <div class="ni" onclick="sv('done',this)"><div class="nd" style="background:var(--green)"></div>Completed<span class="nc" id="nc-dn">0</span></div>
+  </div>
+  <div class="ns">
+    <div class="nsl">Category</div>
+    <div class="ni" onclick="sc2('safety',this)"><div class="nd" style="background:var(--red)"></div>Safety<span class="nc">1</span></div>
+    <div class="ni" onclick="sc2('deal',this)"><div class="nd" style="background:var(--purple)"></div>HHLA Deal<span class="nc">2</span></div>
+    <div class="ni" onclick="sc2('parking',this)"><div class="nd" style="background:var(--teal)"></div>Parking<span class="nc">1</span></div>
+    <div class="ni" onclick="sc2('leasing',this)"><div class="nd" style="background:var(--green)"></div>Leasing<span class="nc">3</span></div>
+    <div class="ni" onclick="sc2('vendor',this)"><div class="nd" style="background:var(--amber)"></div>Vendor<span class="nc">2</span></div>
+  </div>
+  <div class="ns">
+    <div class="nsl">AI Quick Tasks</div>
+    <div class="ni" onclick="sq('Check all unread Outlook emails this week and summarize what needs my attention')"><div class="nd" style="background:var(--t3)"></div>Check unread emails</div>
+    <div class="ni" onclick="sq('Search Slack for any messages about Hollywood Galaxy or HHLA this week')"><div class="nd" style="background:var(--t3)"></div>Check Slack</div>
+    <div class="ni" onclick="sq('What meetings do I have coming up this week?')"><div class="nd" style="background:var(--t3)"></div>My calendar</div>
+    <div class="ni" onclick="sq('Draft a weekly status update for Tyler Mateen covering all open action items at Hollywood Galaxy')"><div class="nd" style="background:var(--t3)"></div>Draft weekly update</div>
+    <div class="ni" onclick="sq('What are my most critical open items and what should I do first today?')"><div class="nd" style="background:var(--t3)"></div>Prioritize my day</div>
+    <div class="ni" onclick="openAddModal()"><div class="nd" style="background:var(--t3)"></div>Add item manually</div>
+  </div>
+</aside>
+
+<!-- MAIN BOARD -->
+<div class="main">
+  <div class="mscroll">
+    <div class="bh">
+      <div><div class="bt" id="ptitle">Action board</div><div class="bs" id="psub">Week of Apr 7–8, 2026 · Hollywood Block LLC</div></div>
+      <button class="hbtn" onclick="openAddModal()" style="font-size:10px;">+ Add item</button>
+    </div>
+    <div class="sgrid">
+      <div class="sc" onclick="uf('critical',this)"><div class="sl">Critical</div><div class="sn cr" id="cnt-c">1</div></div>
+      <div class="sc" onclick="uf('high',this)"><div class="sl">High</div><div class="sn ca" id="cnt-h">3</div></div>
+      <div class="sc" onclick="uf('normal',this)"><div class="sl">Normal</div><div class="sn cb" id="cnt-n">4</div></div>
+      <div class="sc" onclick="uf('low',this)"><div class="sl">Low</div><div class="sn cm" id="cnt-l">1</div></div>
+      <div class="sc" onclick="uf('done',this)"><div class="sl">Done</div><div class="sn cg" id="cnt-d">0</div></div>
+    </div>
+    <div class="fb">
+      <button class="chip on" onclick="suf('all',this)">All</button>
+      <button class="chip" onclick="suf('critical',this)">Critical</button>
+      <button class="chip" onclick="suf('high',this)">High</button>
+      <button class="chip" onclick="suf('normal',this)">Normal</button>
+      <div class="fsp"></div>
+      <div class="srch">
+        <svg class="sico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search..." id="si" oninput="render()">
+      </div>
+    </div>
+    <div id="iw"></div>
+  </div>
+</div>
+
+<!-- CHAT PANEL -->
+<div class="chat">
+  <div class="chdr">
+    <div class="chico"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg></div>
+    <div><div class="chnm">Claude — Agentic Assistant</div><div class="chsub">Reads &amp; acts on connectors · approval required for writes</div></div>
+    <button class="hbtn" style="margin-left:auto;font-size:10px;padding:3px 7px;" onclick="clearChat()">Clear</button>
+  </div>
+  <div class="conn-bar">
+    <span class="conn"><span class="conn-dot"></span>Outlook</span>
+    <span class="conn"><span class="conn-dot"></span>Gmail</span>
+    <span class="conn"><span class="conn-dot"></span>Slack</span>
+    <span class="conn"><span class="conn-dot"></span>Calendar</span>
+    <span class="conn"><span class="conn-dot"></span>Dropbox</span>
+  </div>
+  <div class="cmsgs" id="cmsgs">
+    <div class="msg ai">
+      <div class="bubble">Hi Frank 👋 I'm your agentic assistant for <strong>Hollywood Galaxy</strong>.<br><br>I'm connected to <strong>Outlook, Gmail, Slack, Calendar, and Dropbox</strong>. Use the action buttons on each card to trigger specific tasks — I'll read live email context and draft responses for your approval.<br><br>Nothing gets sent without your go-ahead.</div>
+      <div class="mtime">Now</div>
+    </div>
+  </div>
+  <div class="qps">
+    <button class="qp" onclick="sq('Check my Outlook and summarize unread emails from this week')">Unread emails</button>
+    <button class="qp" onclick="sq('Search Slack for Hollywood Galaxy or HHLA mentions')">Slack search</button>
+    <button class="qp" onclick="sq('What is on my calendar this week?')">Calendar</button>
+    <button class="qp" onclick="sq('Summarize all open items and tell me what to do first today')">Prioritize</button>
+  </div>
+  <div class="cinp">
+    <div class="crow">
+      <textarea id="ci" placeholder="Ask anything — I'll use your connected tools..." rows="1" onkeydown="hk(event)" oninput="ar(this)"></textarea>
+      <button class="sbtn" id="sbtn" onclick="send()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
+      </button>
+    </div>
+    <div class="chint">Enter to send · Shift+Enter for new line · All write actions require approval</div>
+  </div>
+</div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="mbg" id="addm">
+  <div class="modal">
+    <div class="mtitle">Add action item</div>
+    <div class="msub">Manually add an item to the tracker</div>
+    <input class="mi" id="mt" placeholder="Title *">
+    <input class="mi" id="ms2" placeholder="Summary">
+    <input class="mi" id="ma2" placeholder="Action required">
+    <input class="mi" id="mso" placeholder="Source">
+    <div class="mi2">
+      <select class="mi" id="mu" style="padding:7px 9px;"><option value="critical">Critical</option><option value="high">High</option><option value="normal" selected>Normal</option><option value="low">Low</option></select>
+      <select class="mi" id="mc" style="padding:7px 9px;"><option value="safety">Safety</option><option value="deal">HHLA Deal</option><option value="parking">Parking</option><option value="leasing">Leasing</option><option value="vendor">Vendor</option><option value="internal">Internal</option></select>
+    </div>
+    <div class="macts">
+      <button class="hbtn" onclick="document.getElementById('addm').classList.remove('open')">Cancel</button>
+      <button class="hbtn gold" onclick="addItem()">Add item</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="mbg" id="notem">
+  <div class="modal">
+    <div class="mtitle">Add note</div>
+    <div class="msub" id="notesub">Adding note</div>
+    <textarea class="mi" id="notetxt" rows="4" placeholder="Enter note..." style="resize:vertical;"></textarea>
+    <div class="macts">
+      <button class="hbtn" onclick="document.getElementById('notem').classList.remove('open')">Cancel</button>
+      <button class="hbtn gold" onclick="saveNote()">Save note</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const SK='hg-v6',UK='hg-user-v4';
+const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal'};
+const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine'};
+
+// Real email context pulled live
+const EMAIL_CTX = {
+  airgarage: {
+    thread: 'Re: AirGarage x Cannon - Hollywood Galaxy FollowUp',
+    from: 'Stefaun Avakian <stefaun@airgarage.com>',
+    to: 'Jackson Foo, Frank Wang',
+    date: 'Apr 8, 2026',
+    key_points: [
+      'Just launched Property Insights — demand analytics dashboard for flagship properties',
+      'Preview: https://app.arcade.software/share/jtJtVapySp2GkVFndXRB',
+      'Overview: https://www.airgarage.com/blog/property-insights',
+      'Ties asset results to ground-level demand dynamics, real-time pricing strategy',
+      'Jackson previously asked to push the call — not yet aligned internally',
+      'Stefaun offered 15 min to align on: who needs to be in discussion, outstanding questions, target reconnect date',
+      'Contact: stefaun@airgarage.com, 559-520-4301'
+    ]
+  },
+  fluffy: {
+    thread: 'RE: Fluffy Fluffy LOI - Former Starbucks - The Commons 4-6-26',
+    from: 'Sean Retzloff <sean.retzloff@colliers.com> (Colliers)',
+    to: 'Tyler Mateen, Jackson Foo, Whitney Donohue (CC), Frank Wang (CC)',
+    date: 'Apr 6, 2026',
+    key_points: [
+      'Suite 6637-D at The Commons — Former Starbucks space',
+      'Tenant increased rate to $3.75 PSF/Mo NNN with 3% annual bumps',
+      'TI Allowance: $25/SF request = ~$40,000 total (less than 6-month payback on 10-year deal)',
+      '10-year initial lease term + one (1) 5-year option to extend',
+      'Rent commencement: earlier of 120 days after possession OR date Tenant opens for business',
+      'Sean Retzloff (Colliers SVP) recommends accepting and moving to lease',
+      'Whitney confirmed Apr 8: Jackson approved moving forward — asking for next steps'
+    ]
+  }
+};
+
+const DEFAULTS=[
+  {id:1,urgency:'critical',category:'safety',title:'Loose glass panel — exterior monitor, 7021 Hollywood Blvd',summary:'Target\'s Jennifer Santiago flagged a glass panel beneath the exterior monitor that is hanging loose and poses an immediate public safety hazard. AAA Facility Services confirmed onsite response.',action:'Confirm AAA completes removal and document with photos. Draft follow-up to Target.',source:'Jennifer Santiago (Target) · Apr 8',status:'inprogress',notes:[{by:'Frank Wang',text:'AAA Facility confirmed onsite response within the hour',ts:'Apr 8'}],section:'7021 Hollywood Blvd — Safety',addedBy:'Frank Wang',addedTs:'Apr 8',
+    cardAction:{label:'Draft follow-up to Target ↗',prompt:'Draft a professional follow-up email to Jennifer Santiago at Target (jennifer.santiago@target.com) confirming the glass panel at 7021 Hollywood Blvd has been addressed by AAA Facility Services. Keep it brief and warm. Subject: Re: URGENT: Immediate Safety Hazard 7021 Hollywood Blvd'}},
+  {id:2,urgency:'high',category:'vendor',title:'CO sensor calibration proposal — 7021 Hollywood Blvd',summary:'Chris at Tiberius Electric submitted a proposal to calibrate carbon monoxide sensors at Hollywood Galaxy, following up on the existing gas detection work order.',action:'Review the attached proposal and approve or negotiate scope and pricing.',source:'Tiberius Electric · Apr 7',status:'open',notes:[],section:'7021 Hollywood Blvd — Safety',addedBy:'Frank Wang',addedTs:'Apr 8',
+    cardAction:{label:'Review proposal & draft reply ↗',prompt:'Help me review the Tiberius Electric CO sensor calibration proposal for 7021 Hollywood Blvd. Draft an approval email to Chris at strom@tiberiuselectric.com confirming we want to move forward, and asking for a scheduling window for the calibration work.'}},
+  {id:3,urgency:'high',category:'deal',title:'CBRE due diligence — items 4–10 outstanding',summary:'Jim Richards (CBRE Capital Markets) requested the full HHLA deal package. Tyler confirmed basis ~$120M. Frank and Jackson are responsible for items 4–10. Leases and rent roll are priority.',action:'Compile and upload items 4–10 to the HHLA Box folder. Leases and rent roll first.',source:'Jim Richards (CBRE) · Apr 8',status:'open',notes:[],section:'HHLA — Active Deal',addedBy:'Frank Wang',addedTs:'Apr 8',
+    cardAction:{label:'Draft CBRE response ↗',prompt:'Search Outlook for the latest HHLA CBRE due diligence email from Jim Richards at Jim.Richards@cbre.com. Then draft a professional reply confirming we are compiling items 4-10 and will have them uploaded to the Box folder by end of day. Include an ETA and offer to jump on a call if needed.'}},
+  {id:4,urgency:'normal',category:'deal',title:'HHLA Box folder — verify document upload completion',summary:'Trisha Christmas was granted Box access. Confirm all documents — especially leases and rent roll — have been successfully uploaded by end of day.',action:'Verify with Trisha that all assigned documents are uploaded.',source:'Internal · Apr 8',status:'open',notes:[],section:'HHLA — Active Deal',addedBy:'Frank Wang',addedTs:'Apr 8',
+    cardAction:{label:'Check in with Trisha ↗',prompt:'Draft a quick Slack message or email to Trisha Christmas (tchristmas@cannonmgt.com) checking on the status of the HHLA Box folder document uploads. Ask if leases and rent roll are uploaded and if she needs anything else.'}},
+  {id:5,urgency:'normal',category:'parking',title:'AirGarage follow-up — Hollywood Galaxy parking',summary:'AirGarage (Stefaun) wants to schedule an alignment call. Jackson asked to push. AirGarage also launched a Property Insights demand analytics dashboard for flagship properties and wants to demo it for Hollywood Galaxy.',action:'Align internally on AirGarage then reschedule call. Optionally request Property Insights demo.',source:'AirGarage Stefaun · Apr 7–8',status:'open',notes:[],section:'Hollywood Galaxy — Parking',addedBy:'Frank Wang',addedTs:'Apr 8',
+    cardAction:{label:'Reply to AirGarage ↗',prompt:`Draft a reply email to Stefaun Avakian at AirGarage (stefaun@airgarage.com) regarding the Hollywood Galaxy parking follow-up. Here is the context from the real email thread:\n\nThread: ${EMAIL_CTX.airgarage.thread}\nKey points: ${EMAIL_CTX.airgarage.key_points.join('; ')}\n\nThe reply should: (1) acknowledge we haven't had our internal discussion yet but are working on it, (2) express genuine interest in the Property Insights dashboard and ask for access/demo, (3) propose finding time in the next 2 weeks once the team has aligned internally. Keep it warm and professional. Subject line: Re: AirGarage x Cannon - Hollywood Galaxy FollowUp`}},
+  {id:6,urgency:'normal',category:'leasing',title:'HOPE Hydration Station — electrical quote in progress',summary:'Joelle (HOPE Hydration) is proceeding with the Hollywood Blvd location. AAA\'s Steve Cowles is assessing available power near the proposed location before providing an electrical quote.',action:'Monitor progress. Once AAA quote arrives, review and coordinate tenant build-out next steps.',source:'HOPE Hydration · Apr 8',status:'open',notes:[],section:'Hollywood Blvd — Tenant / Leasing',addedBy:'Frank Wang',addedTs:'Apr 8',
+    cardAction:{label:'Summarize thread ↗',prompt:'Search Outlook for the HOPE Hydration Station Hollywood Boulevard email thread. Summarize the full thread, list all parties involved, the current status of the electrical quote from AAA Facility Services (Steve Cowles), and tell me what next steps are needed on my end.'}},
+  {id:7,urgency:'normal',category:'leasing',title:'The Commons 6795 — FMV rate opinion requested',summary:'Whitney Donohue is asking for a fair market value rate opinion for the 6795 S. Virginia building (Massage Envy to Sushi Minato). Current rents range from ~$3.02/psf.',action:'Provide Whitney with a FMV rate opinion, or escalate to Jackson if outside your purview.',source:'Whitney Donohue · Apr 8',status:'open',notes:[],section:'Hollywood Blvd — Tenant / Leasing',addedBy:'Frank Wang',addedTs:'Apr 8',
+    cardAction:{label:'Draft FMV response ↗',prompt:'Draft a professional reply to Whitney Donohue (wdonohue@cannonmgt.com) with a fair market value rate opinion for the 6795 S. Virginia Street building at The Commons. The building runs from Massage Envy to Sushi Minato. Current rents range from ~$3.02/psf (Massage Envy) down for other tenants. Reference comparable retail rates in the Reno/Nevada market for inline retail and provide a recommended FMV range. If this is outside my purview as Assistant PM, suggest escalating to Jackson Foo.'}},
+  {id:8,urgency:'high',category:'leasing',title:'Fluffy Fluffy LOI — Former Starbucks, The Commons',summary:'Whitney confirmed Jackson approved the Fluffy Fluffy LOI for the former Starbucks space at The Commons. Jackson has approved moving forward.',action:'Coordinate with leasing team on counter-LOI or lease drafting and respond to Whitney.',source:'Whitney Donohue · Apr 8',status:'open',notes:[],section:'Hollywood Blvd — Tenant / Leasing',addedBy:'Frank Wang',addedTs:'Apr 8',
+    cardAction:{label:'Next steps + draft reply ↗',prompt:`The Fluffy Fluffy LOI for The Commons has been approved by Jackson. Here are the real LOI details from Colliers:\n\nFrom: ${EMAIL_CTX.fluffy.from}\nDate: ${EMAIL_CTX.fluffy.date}\nDeal terms: ${EMAIL_CTX.fluffy.key_points.join('; ')}\n\nPlease: (1) Summarize the key LOI terms, (2) List the typical next steps after LOI approval (counter-LOI, lease drafting, etc.), (3) Draft a reply email to Whitney Donohue (wdonohue@cannonmgt.com) confirming next steps and timeline. CC Jackson Foo (jfoo@cannonmgt.com).`}},
+  {id:9,urgency:'low',category:'internal',title:'Review daily security reports — Triangle Square + Galaxy',summary:'Daily activity reports from On Watch Global and GuardTek received. No anomalies flagged in summaries.',action:'Review attached reports and flag any incidents to maintenance or security.',source:'GuardTek / On Watch · Apr 8',status:'open',notes:[],section:'Internal / Routine',addedBy:'Frank Wang',addedTs:'Apr 8',
+    cardAction:{label:'Check security reports ↗',prompt:'Search Outlook for the GuardTek Galaxy Activity Report and On Watch Global Triangle Square daily activity reports from today April 8 2026. Summarize any incidents, anomalies, or items requiring follow-up. If nothing flagged, confirm all clear.'}}
+];
+
+let STATE={items:[],nextId:10,lastSync:null};
+let currentUser='Frank Wang';
+let activeView='all',activeCat=null,activeUrg='all';
+let noteTarget=null, isBusy=false;
+let chatHistory=[], pendingApprovals={};
+
+// ── STORAGE ───────────────────────────────────────────────────────────────────
+function loadState(){
+  try{const r=localStorage.getItem(SK);STATE=r?JSON.parse(r):{items:JSON.parse(JSON.stringify(DEFAULTS)),nextId:10,lastSync:null};}
+  catch(e){STATE={items:JSON.parse(JSON.stringify(DEFAULTS)),nextId:10,lastSync:null};}
+  currentUser=localStorage.getItem(UK)||'Frank Wang';
+}
+function saveState(){localStorage.setItem(SK,JSON.stringify(STATE));localStorage.setItem('hg-p6',Date.now().toString());}
+window.addEventListener('storage',e=>{if(e.key==='hg-p6'){loadState();render();counts();toast('Updated by team member');}});
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function getFiltered(){
+  const q=document.getElementById('si').value.toLowerCase();
+  return STATE.items.filter(i=>{
+    const s=i.status;
+    if(activeView==='open'&&s!=='open')return false;
+    if(activeView==='inprogress'&&s!=='inprogress')return false;
+    if(activeView==='escalated'&&s!=='escalated')return false;
+    if(activeView==='done'&&s!=='done')return false;
+    if(activeUrg!=='all'&&activeUrg!=='done'&&i.urgency!==activeUrg)return false;
+    if(activeUrg==='done'&&s!=='done')return false;
+    if(activeCat&&i.category!==activeCat)return false;
+    if(q&&!i.title.toLowerCase().includes(q)&&!i.summary.toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+
+function render(){
+  const f=getFiltered();const w=document.getElementById('iw');
+  if(!f.length){w.innerHTML='<div class="empty-s">No items match filter</div>';return;}
+  const g={};f.forEach(i=>{const s=i.section||'Other';if(!g[s])g[s]=[];g[s].push(i);});
+  let h='';
+  Object.entries(g).forEach(([sec,items])=>{
+    h+=`<div class="sdv"><span class="sdl">${sec}</span><div class="sdln"></div></div>`;
+    items.forEach(i=>h+=card(i));
+  });
+  w.innerHTML=h;
+}
+
+function card(i){
+  const s=i.status,d=s==='done';
+  const nh=(i.notes||[]).map(n=>`<div class="nb"><span class="nby">${n.by}</span><span style="color:var(--t3);margin-right:3px;">${n.ts} ·</span>${n.text}</div>`).join('');
+  const who=i.lastEditedBy?`<span style="font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);background:var(--s3);padding:1px 5px;border-radius:3px;">by ${i.lastEditedBy}</span>`:'';
+  // Inline action button (the screenshot feature)
+  const ca=i.cardAction;
+  const caHtml=ca?`<button class="card-action-btn" id="cab-${i.id}" onclick="triggerCardAction(${i.id})">${ca.label}</button>`:'';
+  return `<div class="ic ${i.urgency}${d?' done-c':''}" id="card-${i.id}">
+    <div class="itop"><span class="ub ub-${i.urgency}">${i.urgency}</span><span class="catb cat-${i.category}">${CAT[i.category]||i.category}</span><span class="isrc">${i.source||''}</span>${who}</div>
+    <div class="ict">${i.title}</div>
+    <div class="ism">${i.summary}</div>
+    ${i.action?`<button class="inline-action" onclick="triggerCardAction(${i.id})">${i.action}</button>`:''}
+    ${caHtml}
+    <div class="ifoo">
+      <div class="ibts">
+        <button class="ibtn" onclick="openNoteModal(${i.id})">Note</button>
+        <button class="ibtn ai" onclick="askAI(${i.id})">Ask AI ✦</button>
+        ${d?`<button class="ibtn" onclick="setSt(${i.id},'open')">Reopen</button>`:`<button class="ibtn gd" onclick="setSt(${i.id},'done')">Done ✓</button>`}
+      </div>
+      <select class="ss ss-${s}" onchange="setSt(${i.id},this.value)">
+        <option value="open" ${s==='open'?'selected':''}>Open</option>
+        <option value="inprogress" ${s==='inprogress'?'selected':''}>In progress</option>
+        <option value="waiting" ${s==='waiting'?'selected':''}>Waiting</option>
+        <option value="escalated" ${s==='escalated'?'selected':''}>Escalated</option>
+        <option value="done" ${s==='done'?'selected':''}>Done</option>
+      </select>
+    </div>${nh}
+  </div>`;
+}
+
+function counts(){
+  const c={open:0,inprogress:0,escalated:0,done:0,critical:0,high:0,normal:0,low:0};
+  STATE.items.forEach(i=>{const s=i.status;if(c[s]!==undefined)c[s]++;if(s!=='done')c[i.urgency]++;});
+  document.getElementById('nc-all').textContent=STATE.items.length;
+  document.getElementById('nc-open').textContent=c.open;
+  document.getElementById('nc-inp').textContent=c.inprogress;
+  document.getElementById('nc-esc').textContent=c.escalated;
+  document.getElementById('nc-dn').textContent=c.done;
+  document.getElementById('cnt-c').textContent=c.critical;
+  document.getElementById('cnt-h').textContent=c.high;
+  document.getElementById('cnt-n').textContent=c.normal;
+  document.getElementById('cnt-l').textContent=c.low;
+  document.getElementById('cnt-d').textContent=c.done;
+}
+
+// ── CARD ACTION BUTTON ────────────────────────────────────────────────────────
+function triggerCardAction(id){
+  const item=STATE.items.find(x=>x.id===id);
+  if(!item||!item.cardAction)return;
+  const btn=document.getElementById('cab-'+id);
+  if(btn){btn.classList.add('loading');btn.textContent='Working...';}
+  // Fire into chat
+  sq(item.cardAction.prompt);
+  setTimeout(()=>{
+    if(btn){btn.classList.remove('loading');btn.textContent=item.cardAction.label;}
+  },3000);
+}
+
+// ── ITEM ACTIONS ──────────────────────────────────────────────────────────────
+function setSt(id,val){const i=STATE.items.find(x=>x.id===id);if(!i)return;i.status=val;i.lastEditedBy=currentUser;saveState();render();counts();if(val==='done')toast('✓ Marked complete');}
+function openNoteModal(id){noteTarget=id;const i=STATE.items.find(x=>x.id===id);document.getElementById('notesub').textContent=(i?.title||'').slice(0,55)+'...';document.getElementById('notetxt').value='';document.getElementById('notem').classList.add('open');}
+function saveNote(){const t=document.getElementById('notetxt').value.trim();if(!t)return;const i=STATE.items.find(x=>x.id===noteTarget);if(!i)return;if(!i.notes)i.notes=[];const n=new Date();i.notes.push({by:currentUser,text:t,ts:n.toLocaleDateString('en-US',{month:'short',day:'numeric'})+', '+n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})});i.lastEditedBy=currentUser;saveState();render();document.getElementById('notem').classList.remove('open');toast('Note saved');}
+function openAddModal(){document.getElementById('addm').classList.add('open');}
+function addItem(){const t=document.getElementById('mt').value.trim();if(!t){toast('Title required');return;}const cat=document.getElementById('mc').value;STATE.items.push({id:STATE.nextId++,urgency:document.getElementById('mu').value,category:cat,title:t,summary:document.getElementById('ms2').value.trim(),action:document.getElementById('ma2').value.trim(),source:document.getElementById('mso').value.trim()||`${currentUser} · Manual`,status:'open',notes:[],section:SECMAP[cat]||'Internal / Routine',addedBy:currentUser,addedTs:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),cardAction:null});saveState();render();counts();document.getElementById('addm').classList.remove('open');['mt','ms2','ma2','mso'].forEach(x=>document.getElementById(x).value='');toast('Item added');}
+function sv(v,el){activeView=v;activeCat=null;document.querySelectorAll('.sb .ni').forEach(n=>n.classList.remove('act'));el.classList.add('act');document.getElementById('ptitle').textContent={all:'Action board',open:'Open items',inprogress:'In progress',escalated:'Escalated',done:'Completed'}[v]||'Action board';render();}
+function sc2(c,el){activeCat=activeCat===c?null:c;activeView='all';document.querySelectorAll('.sb .ni').forEach(n=>n.classList.remove('act'));if(activeCat)el.classList.add('act');else document.querySelectorAll('.sb .ni')[0].classList.add('act');document.getElementById('ptitle').textContent=activeCat?CAT[activeCat]+' items':'Action board';render();}
+function uf(u,el){activeUrg=activeUrg===u?'all':u;document.querySelectorAll('.sc').forEach(c=>c.classList.remove('af'));if(activeUrg!=='all')el.classList.add('af');render();}
+function suf(u,el){activeUrg=u;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');document.querySelectorAll('.sc').forEach(c=>c.classList.remove('af'));render();}
+function exportCSV(){const rows=[['ID','Title','Urgency','Category','Status','Source','Action']];STATE.items.forEach(i=>rows.push([i.id,`"${i.title}"`,i.urgency,CAT[i.category]||i.category,i.status,`"${i.source||''}"`,`"${i.action||''}"`]));const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='hg-actions.csv';a.click();URL.revokeObjectURL(url);toast('CSV exported');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2800);}
+function initUser(){if(!localStorage.getItem(UK)){const n=prompt('Welcome to Hollywood Galaxy Command Center.\nEnter your name:')||'Team Member';currentUser=n;localStorage.setItem(UK,n);}const i=currentUser.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);document.getElementById('uav').textContent=i;document.getElementById('unm').textContent=currentUser;}
+function changeUser(){const n=prompt('Change name:',currentUser);if(n?.trim()){currentUser=n.trim();localStorage.setItem(UK,currentUser);const i=currentUser.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);document.getElementById('uav').textContent=i;document.getElementById('unm').textContent=currentUser;}}
+
+// ── SYSTEM PROMPT ─────────────────────────────────────────────────────────────
+function getSys(){
+  const open=STATE.items.filter(i=>i.status!=='done');
+  const list=open.map(i=>`- [${i.urgency.toUpperCase()}] ${i.title} (${CAT[i.category]}) — ${i.status}`).join('\n');
+  return `You are Claude, an agentic property management assistant for ${currentUser} at Hollywood Galaxy (7021 Hollywood Blvd, Los Angeles, CA 90028), Hollywood Block LLC.
+
+You have access to: Outlook/M365, Gmail, Slack, Google Calendar, Dropbox via MCP tools.
+
+OPEN ACTION ITEMS:
+${list}
+
+KEY CONTACTS:
+- Tyler Mateen (Principal): tmateen@cannonmgt.com
+- Jackson Foo: jfoo@cannonmgt.com  
+- Whitney Donohue (Sr PM): wdonohue@cannonmgt.com
+- Trisha Christmas (PM Asst): tchristmas@cannonmgt.com
+- Jim Richards (CBRE): Jim.Richards@cbre.com
+- AirGarage Stefaun: stefaun@airgarage.com
+- Target Jennifer Santiago: Jennifer.Santiago@target.com
+- Tiberius Electric Chris: strom@tiberiuselectric.com
+- Sean Retzloff (Colliers): sean.retzloff@colliers.com
+
+ACTIVE DEALS:
+- HHLA: Sale process with CBRE, basis ~$120M, Box folder for due diligence docs
+- Fluffy Fluffy LOI: Former Starbucks at The Commons, $3.75/psf NNN, 10-yr + 1×5yr option, ~$40K TI, Jackson approved Apr 8
+- AirGarage: Parking management proposal for Hollywood Galaxy, internally not yet aligned
+
+TOOL USE RULES:
+1. READ actions (search email, read thread, search Slack, check calendar): Execute immediately, show results.
+2. WRITE actions (send/draft email, post Slack, create calendar event, add tracker item): ALWAYS present as an APPROVAL_REQUIRED block — never execute without approval.
+3. Format write approvals as: APPROVAL_REQUIRED|<tool>|<description>|<full content>
+4. When using tools, briefly narrate: "Let me search Outlook for that..."
+5. Be concise and action-oriented. Reference actual names/emails from context.
+6. Always draft real, send-ready content — not placeholders.`;
+}
+
+// ── CHAT ENGINE ───────────────────────────────────────────────────────────────
+function sq(msg){document.getElementById('ci').value=msg;send();}
+function askAI(id){const i=STATE.items.find(x=>x.id===id);if(!i)return;sq(`Help me action this item: "${i.title}". Context: ${i.summary} Action required: ${i.action}`);}
+function clearChat(){chatHistory=[];document.getElementById('cmsgs').innerHTML=`<div class="msg ai"><div class="bubble">Chat cleared. How can I help?</div></div>`;}
+function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,90)+'px';}
+const n12=()=>new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function addMsg(role,html,raw=false){
+  const m=document.getElementById('cmsgs');
+  const d=document.createElement('div');d.className=`msg ${role}`;
+  const b=document.createElement('div');b.className='bubble';
+  b.innerHTML=raw?html:fmt(html);
+  const t=document.createElement('div');t.className='mtime';t.textContent=n12();
+  d.appendChild(b);d.appendChild(t);m.appendChild(d);m.scrollTop=m.scrollHeight;
+  if(role==='user')chatHistory.push({role:'user',content:html});
+  return b;
+}
+
+function fmt(t){
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
+
+function showTyping(){const m=document.getElementById('cmsgs');const d=document.createElement('div');d.className='msg ai';d.id='typdiv';d.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';m.appendChild(d);m.scrollTop=m.scrollHeight;}
+function rmTyping(){const t=document.getElementById('typdiv');if(t)t.remove();}
+
+function addTC(name,cls,icon,preview=''){
+  const m=document.getElementById('cmsgs');const d=document.createElement('div');d.className='msg ai';
+  const id='tc-'+Date.now();
+  d.innerHTML=`<div class="tc" id="${id}"><div class="tc-head"><div class="tc-ico ${cls}">${icon}</div><span class="tc-name">${name}</span><span class="tc-st run"><div class="tc-spin"></div>running</span></div>${preview?`<div class="tc-body">${esc(preview.slice(0,80))}</div>`:''}</div>`;
+  m.appendChild(d);m.scrollTop=m.scrollHeight;return id;
+}
+
+function updTC(id,status,result=''){
+  const el=document.getElementById(id);if(!el)return;
+  const st=el.querySelector('.tc-st');
+  if(st){st.className=`tc-st ${status==='ok'?'ok':'err'}`;st.innerHTML=status==='ok'?'✓ done':'✗ error';}
+  if(result){let b=el.querySelector('.tc-body');if(!b){b=document.createElement('div');b.className='tc-body';el.appendChild(b);}b.textContent=result.slice(0,300)+(result.length>300?'…':'');}
+  document.getElementById('cmsgs').scrollTop=99999;
+}
+
+function addAPC(apId,tool,desc,preview,onApprove,onReject){
+  const labels={draft_email:'Email — Create Draft',slack_draft:'Slack — Save Draft',calendar_event:'Calendar — Create Event',add_tracker:'Tracker — Add Item',gmail_draft:'Gmail — Create Draft'};
+  const m=document.getElementById('cmsgs');const d=document.createElement('div');d.className='msg ai';
+  d.innerHTML=`<div class="apc" id="apc-${apId}">
+    <div class="apc-head"><span style="font-size:13px;">⚠</span><span class="apc-title">${labels[tool]||tool}</span><span class="apc-badge">NEEDS APPROVAL</span></div>
+    <div class="apc-body">
+      <div class="apc-desc">${esc(desc)}</div>
+      <div class="apc-preview">${esc(preview)}</div>
+      <div class="apc-acts">
+        <button class="apbtn approve" id="ap-a-${apId}" onclick="resolveAP('${apId}',true)">Approve &amp; Execute</button>
+        <button class="apbtn edit-btn" onclick="editAP('${apId}')">Edit</button>
+        <button class="apbtn reject" id="ap-r-${apId}" onclick="resolveAP('${apId}',false)">Reject</button>
+      </div>
+      <div id="ap-res-${apId}"></div>
+    </div>
+  </div>`;
+  m.appendChild(d);m.scrollTop=m.scrollHeight;
+  pendingApprovals[apId]={tool,desc,preview,onApprove,onReject,resolved:false};
+}
+
+function resolveAP(apId,approved){
+  const ap=pendingApprovals[apId];if(!ap||ap.resolved)return;
+  ap.resolved=true;
+  document.getElementById('ap-a-'+apId).disabled=true;
+  document.getElementById('ap-r-'+apId).disabled=true;
+  const res=document.getElementById('ap-res-'+apId);
+  if(approved){
+    res.className='apc-result ok';res.textContent='✓ Approved — executing...';
+    ap.onApprove(pendingApprovals[apId].preview).then(msg=>{res.textContent='✓ '+msg;}).catch(e=>{res.className='apc-result fail';res.textContent='✗ Error: '+(e.message||e);});
+  }else{
+    res.className='apc-result fail';res.textContent='✗ Rejected — cancelled.';
+    ap.onReject&&ap.onReject();
+  }
+}
+
+function editAP(apId){
+  const ap=pendingApprovals[apId];if(!ap||ap.resolved)return;
+  const edited=prompt('Edit content before approving:',ap.preview);
+  if(edited!==null&&edited.trim()){
+    ap.preview=edited.trim();
+    const el=document.querySelector(`#apc-${apId} .apc-preview`);
+    if(el)el.textContent=edited.trim();
+    toast('Content updated — approve to execute');
+  }
+}
+
+// ── MAIN SEND ─────────────────────────────────────────────────────────────────
+async function send(){
+  const inp=document.getElementById('ci');
+  const msg=inp.value.trim();
+  if(!msg||isBusy)return;
+  inp.value='';inp.style.height='auto';
+  addMsg('user',msg);
+  await runAgent(msg);
+}
+
+async function runAgent(userMsg){
+  isBusy=true;document.getElementById('sbtn').disabled=true;
+  showTyping();
+
+  const tools=[
+    {name:'search_outlook',description:'Search Outlook emails.',input_schema:{type:'object',properties:{query:{type:'string'},afterDateTime:{type:'string'},limit:{type:'number'}},required:['query']}},
+    {name:'read_outlook_email',description:'Read full content of an Outlook email by URI.',input_schema:{type:'object',properties:{uri:{type:'string'}},required:['uri']}},
+    {name:'search_slack',description:'Search Slack messages.',input_schema:{type:'object',properties:{query:{type:'string'},afterDateTime:{type:'string'}},required:['query']}},
+    {name:'search_calendar',description:'Search calendar events.',input_schema:{type:'object',properties:{query:{type:'string'},afterDateTime:{type:'string'},beforeDateTime:{type:'string'}},required:['query']}},
+    {name:'search_gmail',description:'Search Gmail.',input_schema:{type:'object',properties:{q:{type:'string'},maxResults:{type:'number'}},required:['q']}},
+    {name:'draft_email',description:'APPROVAL REQUIRED: Draft an email for review before sending.',input_schema:{type:'object',properties:{to:{type:'string'},cc:{type:'string'},subject:{type:'string'},body:{type:'string'},service:{type:'string',enum:['gmail','outlook']}},required:['to','subject','body']}},
+    {name:'draft_slack',description:'APPROVAL REQUIRED: Draft a Slack message.',input_schema:{type:'object',properties:{channel:{type:'string'},message:{type:'string'}},required:['channel','message']}},
+    {name:'add_tracker',description:'APPROVAL REQUIRED: Add a new item to the action tracker.',input_schema:{type:'object',properties:{title:{type:'string'},summary:{type:'string'},action:{type:'string'},urgency:{type:'string',enum:['critical','high','normal','low']},category:{type:'string',enum:['safety','deal','parking','leasing','vendor','internal']},source:{type:'string'}},required:['title','urgency','category']}}
+  ];
+
+  const messages=[...chatHistory.slice(-14),{role:'user',content:userMsg}];
+
+  try{
+    let resp, data;
+    try {
+      resp = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          max_tokens: 1500,
+          system: getSys(),
+          tools,
+          messages,
+          _connectors: ['outlook', 'gmail', 'slack', 'calendar', 'dropbox']
+        })
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      data = await resp.json();
+    } catch(fetchErr) {
+      rmTyping();
+      addMsg('ai', '**Connection error** — could not reach the API.\n\nPlease check:\n1. Your ANTHROPIC_API_KEY is set in Render → Environment Variables\n2. The Render service shows Live (not sleeping)\n3. Refresh this page and try again');
+      isBusy = false; document.getElementById('sbtn').disabled = false; return;
+    }
+    rmTyping();
+    if (data.error) {
+      addMsg('ai', '**API error:** ' + (data.error.message || JSON.stringify(data.error)));
+      isBusy = false; document.getElementById('sbtn').disabled = false; return;
+    }
+
+    let textParts='',toolCalls=[];
+    for(const blk of data.content){
+      if(blk.type==='text'){
+        if(blk.text.includes('APPROVAL_REQUIRED|')){
+          const segs=blk.text.split('APPROVAL_REQUIRED|');
+          if(segs[0].trim())textParts+=segs[0].trim();
+          for(let i=1;i<segs.length;i++){
+            if(textParts.trim()){addMsg('ai',textParts.trim());textParts='';}
+            const parts=segs[i].split('|');
+            if(parts.length>=3){
+              const apId='ap-'+Date.now()+'-'+i;
+              const tool=parts[0],desc=parts[1],preview=parts.slice(2).join('|');
+              addApprovalFromText(apId,tool,desc,preview);
+            }
+          }
+        }else{textParts+=blk.text;}
+      }else if(blk.type==='tool_use'){toolCalls.push(blk);}
+    }
+    if(textParts.trim())addMsg('ai',textParts.trim());
+
+    chatHistory.push({role:'assistant',content:data.content});
+
+    // Execute tool calls
+    for(const tc of toolCalls){
+      await doTool(tc,data.content,messages);
+    }
+
+  }catch(e){
+    rmTyping();
+    addMsg('ai','Connection error. Check network and try again.');
+  }
+  isBusy=false;document.getElementById('sbtn').disabled=false;
+}
+
+function addApprovalFromText(apId,tool,desc,preview){
+  addAPC(apId,tool,desc,preview,
+    async(editedContent)=>{
+      if(tool==='draft_email'||tool==='gmail_draft'){
+        const lines=editedContent.split('\n');
+        let to='',cc='',subject='',bodyLines=[],inBody=false;
+        for(let i=0;i<lines.length;i++){
+          if(!inBody){
+            if(lines[i].startsWith('TO: '))to=lines[i].slice(4).trim();
+            else if(lines[i].startsWith('CC: '))cc=lines[i].slice(4).trim();
+            else if(lines[i].startsWith('SUBJECT: '))subject=lines[i].slice(9).trim();
+            else if(lines[i]===''&&subject){inBody=true;}
+          }else{bodyLines.push(lines[i]);}
+        }
+        const body=bodyLines.join('\n').trim()||editedContent;
+        return await executeGmailDraft(to||'',cc||'',subject||'(no subject)',body);
+      }else if(tool==='outlook_draft'){
+        const lines=editedContent.split('\n');
+        let to='',cc='',subject='',bodyLines=[],inBody=false;
+        for(let i=0;i<lines.length;i++){
+          if(!inBody){
+            if(lines[i].startsWith('TO: '))to=lines[i].slice(4).trim();
+            else if(lines[i].startsWith('CC: '))cc=lines[i].slice(4).trim();
+            else if(lines[i].startsWith('SUBJECT: '))subject=lines[i].slice(9).trim();
+            else if(lines[i]===''&&subject){inBody=true;}
+          }else{bodyLines.push(lines[i]);}
+        }
+        return await executeOutlookDraft(to,cc,subject,bodyLines.join('\n').trim()||editedContent);
+      }else if(tool==='slack_draft'){
+        const parts=editedContent.split('\n');
+        const channel=parts[0].replace(/^#/,'').trim();
+        const message=parts.slice(1).join('\n').trim()||editedContent;
+        return await executeSlackDraft(channel,message);
+      }else if(tool==='add_tracker'){
+        const lines=editedContent.split('\n');
+        const get=(prefix)=>{const l=lines.find(x=>x.startsWith(prefix));return l?l.slice(prefix.length).trim():'';};
+        const title=get('Title: '),urgency=get('Urgency: ')||'normal',category=get('Category: ')||'internal';
+        if(title){STATE.items.push({id:STATE.nextId++,urgency,category,title,summary:get('Summary: '),action:get('Action: '),source:'AI · '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),status:'open',notes:[],section:SECMAP[category]||'Internal / Routine',addedBy:'Claude AI',addedTs:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),cardAction:null});saveState();render();counts();}
+        return 'Item added to tracker';
+      }else{toast('Action noted');return 'Acknowledged';}
+    },
+    ()=>{}
+  );
+}
+
+async function doTool(tc,prevContent,prevMessages){
+  const {name,input,id:tcId}=tc;
+
+  // Write actions → approval card
+  if(name==='draft_email'){
+    const emailData={to:input.to||'',cc:input.cc||'',subject:input.subject||'',body:input.body||'',service:input.service||'gmail'};
+    const preview='TO: '+emailData.to+(emailData.cc?'\nCC: '+emailData.cc:'')+'\nSUBJECT: '+emailData.subject+'\n\n'+emailData.body;
+    const apId='ap-'+Date.now();
+    const svcLabel=emailData.service==='outlook'?'Outlook (via Gmail fallback)':'Gmail';
+    addAPC(apId,'draft_email','Create draft email in '+svcLabel+' → '+emailData.to+' — "'+emailData.subject+'"',preview,
+      async(editedContent)=>{
+        // Parse edits back into structured fields
+        const lines=editedContent.split('\n');
+        let parsedTo=emailData.to,parsedCc=emailData.cc,parsedSubject=emailData.subject;
+        let bodyStart=0;
+        for(let i=0;i<lines.length;i++){
+          if(lines[i].startsWith('TO: '))parsedTo=lines[i].slice(4).trim();
+          else if(lines[i].startsWith('CC: '))parsedCc=lines[i].slice(4).trim();
+          else if(lines[i].startsWith('SUBJECT: '))parsedSubject=lines[i].slice(9).trim();
+          else if(lines[i]===''&&parsedSubject&&bodyStart===0){bodyStart=i+1;}
+        }
+        const parsedBody=bodyStart>0?lines.slice(bodyStart).join('\n').trim():editedContent;
+        // Route to correct executor
+        if(emailData.service==='outlook'){
+          return await executeOutlookDraft(parsedTo,parsedCc,parsedSubject,parsedBody);
+        }else{
+          return await executeGmailDraft(parsedTo,parsedCc,parsedSubject,parsedBody);
+        }
+      },()=>{}
+    );
+    await feedToolResult(tcId,'Email draft ready for your review above. Approve to create in '+svcLabel+'.',prevContent);
+    return;
+  }
+  if(name==='draft_slack'){
+    const slackData={channel:input.channel||'',message:input.message||''};
+    const apId='ap-'+Date.now();
+    addAPC(apId,'slack_draft',`Save Slack draft to #${slackData.channel}`,slackData.message,
+      async(editedContent)=>{
+        const result=await executeSlackDraft(slackData.channel,editedContent);
+        return result;
+      },()=>{}
+    );
+    await feedToolResult(tcId,'Slack draft ready for approval.',prevContent);
+    return;
+  }
+  if(name==='add_tracker'){
+    const preview=`Title: ${input.title}\nUrgency: ${input.urgency}\nCategory: ${input.category}\nSummary: ${input.summary||'—'}\nAction: ${input.action||'—'}`;
+    const apId='ap-'+Date.now();
+    addAPC(apId,'add_tracker',`Add new ${input.urgency} item to action board`,preview,
+      async()=>{
+        STATE.items.push({id:STATE.nextId++,urgency:input.urgency,category:input.category,title:input.title,summary:input.summary||'',action:input.action||'',source:input.source||`AI · ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})}`,status:'open',notes:[],section:SECMAP[input.category]||'Internal / Routine',addedBy:'Claude AI',addedTs:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),cardAction:null});
+        saveState();render();counts();return 'Item added to board ✓';
+      },()=>{}
+    );
+    await feedToolResult(tcId,'Tracker item ready for approval.',prevContent);
+    return;
+  }
+
+  // Read actions → execute
+  const icon={search_outlook:'✉',read_outlook_email:'✉',search_slack:'#',search_calendar:'📅',search_gmail:'✉'}[name]||'⚙';
+  const cls={search_outlook:'outlook',read_outlook_email:'outlook',search_slack:'slack',search_calendar:'cal',search_gmail:'gmail'}[name]||'system';
+  const label={search_outlook:'Searching Outlook',read_outlook_email:'Reading email',search_slack:'Searching Slack',search_calendar:'Checking calendar',search_gmail:'Searching Gmail'}[name]||name;
+  const tcElId=addTC(label,cls,icon);
+
+  try{
+    let result='';
+    if(name==='search_outlook') result=await doOutlookSearch(input);
+    else if(name==='read_outlook_email') result=await doReadEmail(input.uri);
+    else if(name==='search_slack') result=await doSlackSearch(input);
+    else if(name==='search_calendar') result=await doCalSearch(input);
+    else if(name==='search_gmail') result=await doGmailSearch(input);
+    updTC(tcElId,'ok',result);
+    await feedToolResult(tcId,result,prevContent);
+  }catch(e){
+    updTC(tcElId,'err','Error: '+e.message);
+    addMsg('ai',`Tool error (${name}): ${e.message}`);
+  }
+}
+
+async function feedToolResult(toolUseId,result,prevContent){
+  try{
+    const resp=await fetch(API_BASE,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        max_tokens:1000,system:getSys(),
+        _connectors:['outlook','gmail','slack','calendar','dropbox'],
+        messages:[
+          ...chatHistory.slice(-12),
+          {role:'assistant',content:prevContent},
+          {role:'user',content:[{type:'tool_result',tool_use_id:toolUseId,content:result}]}
+        ]
+      })
+    });
+    const data=await resp.json();
+    if(data.content){
+      let txt=data.content.filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+      if(txt.includes('APPROVAL_REQUIRED|')){
+        const segs=txt.split('APPROVAL_REQUIRED|');
+        if(segs[0].trim())addMsg('ai',segs[0].trim());
+        for(let i=1;i<segs.length;i++){
+          const parts=segs[i].split('|');
+          if(parts.length>=3){const apId='ap-'+Date.now()+'-'+i;addApprovalFromText(apId,parts[0],parts[1],parts.slice(2).join('|'));}
+        }
+      }else if(txt){addMsg('ai',txt);}
+      chatHistory.push({role:'assistant',content:txt});
+    }
+  }catch(e){}
+}
+
+// ── CONNECTOR CALLS ───────────────────────────────────────────────────────────
+// Central API caller — routes through local proxy server (server.js)
+// Automatically use the current host — works on Render, local, or any server.
+const API_BASE = window.location.origin + '/api/claude';
+
+async function callClaude(prompt, system, connectors=[]) {
+  const body = {
+    max_tokens: 800,
+    system,
+    messages: [{ role: 'user', content: prompt }],
+    _connectors: connectors  // server maps these to MCP server URLs
+  };
+  const r = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error('Server error: ' + r.status + ' — is server.js running?');
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+  return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+}
+
+async function doOutlookSearch(input){
+  const txt=await callClaude(
+    `Search Outlook emails for: ${input.query}${input.afterDateTime?' after '+input.afterDateTime:''}. Return results as formatted text: each email on its own line with sender, date, subject, and 1-sentence summary.`,
+    'You are a helpful email search assistant. Format results clearly.',
+    ['outlook']
+  );
+  return txt||'No results found';
+}
+
+async function doReadEmail(uri){
+  const txt=await callClaude(
+    `Read this email and provide a clear summary: ${uri}`,
+    'You are a helpful email assistant. Provide sender, date, and key points.',
+    ['outlook']
+  );
+  return txt||'Could not read email';
+}
+
+async function doSlackSearch(input){
+  const txt=await callClaude(
+    `Search Slack for messages about: ${input.query}${input.afterDateTime?' after '+input.afterDateTime:''}. Return results formatted clearly.`,
+    'You are a helpful Slack search assistant.',
+    ['slack']
+  );
+  return txt||'No results found';
+}
+
+async function doCalSearch(input){
+  const txt=await callClaude(
+    `Search calendar for: ${input.query}${input.afterDateTime?' from '+input.afterDateTime:''}${input.beforeDateTime?' to '+input.beforeDateTime:''}. List events clearly.`,
+    'You are a helpful calendar assistant.',
+    [{type:'url',url:'https://gcal.mcp.claude.com/mcp',name:'gcal'},{type:'url',url:'https://microsoft365.mcp.claude.com/mcp',name:'m365'}]
+  );
+  return txt||'No events found';
+}
+
+async function doGmailSearch(input){
+  const txt=await callClaude(
+    `Search Gmail for: ${input.q}. Return results with sender, date, subject, and brief summary.`,
+    'You are a helpful Gmail search assistant.',
+    ['gmail']
+  );
+  return txt||'No results found';
+}
+
+async function createGmailDraft(to,cc,subject,body){
+  await callClaude(
+    `Create a Gmail draft: To: ${to}${cc?', CC: '+cc:''}, Subject: ${subject}, Body:\n${body}`,
+    'Create the email draft as instructed.',
+    ['gmail']
+  );
+}
+
+// ── DIRECT TOOL EXECUTION (called only after Frank approves) ─────────────────
+// Connector capability map (tested):
+//   Gmail          → gmail_create_draft  ✓ (when Gmail MCP token is valid)
+//   Slack drafts   → slack_send_message_draft ✓ confirmed working
+//   Calendar       → gcal_create_event ✓
+//   Outlook        → No create-draft tool available; routes to Gmail fallback
+//
+// Each function calls a dedicated Anthropic API request with the MCP server
+// and a system prompt that forces tool use immediately.
+
+async function executeGmailDraft(to, cc, subject, body) {
+  const resp = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      max_tokens: 500,
+      _connectors: ['gmail'],
+      system: 'You are a Gmail draft creator. You MUST call the gmail_create_draft tool immediately with the exact parameters provided. No explanation — just call the tool now.',
+      messages: [{
+        role: 'user',
+        content: 'Call gmail_create_draft RIGHT NOW with:\nto: "' + to + '"\n' +
+          (cc ? 'cc: "' + cc + '"\n' : '') +
+          'subject: "' + subject + '"\nbody: ' + JSON.stringify(body) + '\ncontentType: "text/plain"'
+      }]
+    })
+  });
+  if (!resp.ok) throw new Error('Server error ' + resp.status + ' — is server.js running?');
+  const data = await resp.json();
+  if (data.error) throw new Error('Gmail API: ' + (data.error.message || JSON.stringify(data.error)));
+  return 'Gmail draft created ✓ — check your Drafts folder';
+}
+
+async function executeOutlookDraft(to, cc, subject, body) {
+  // Outlook does not expose a create-draft MCP tool — route to Gmail instead
+  // and note this for the user
+  try {
+    const result = await executeGmailDraft(to, cc, subject, body);
+    return result + ' (routed via Gmail — Outlook draft API not available)';
+  } catch(e) {
+    throw new Error('Draft failed — please use Gmail or create manually in Outlook. Error: ' + e.message);
+  }
+}
+
+async function executeSlackDraft(channel, message) {
+  const resp = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      max_tokens: 400,
+      _connectors: ['slack'],
+      system: 'You are a Slack assistant. Your ONLY job is to call slack_send_message_draft immediately using the channel name or ID provided. First use slack_search_channels to find the channel ID if only a name is given, then call slack_send_message_draft. Do it now.',
+      messages: [{
+        role: 'user',
+        content: 'Create a Slack draft NOW in channel "' + channel + '" with this message:\n' + message
+      }]
+    })
+  });
+  if (!resp.ok) throw new Error('Server error ' + resp.status + ' — is server.js running?');
+  const data = await resp.json();
+  if (data.error) throw new Error('Slack API: ' + (data.error.message || JSON.stringify(data.error)));
+  return 'Slack draft saved ✓ — check Drafts & Sent in Slack';
+}
+
+async function executeCalendarEvent(summary, startDateTime, endDateTime, attendees, description) {
+  const resp = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      max_tokens: 400,
+      _connectors: ['calendar'],
+      system: 'You are a Google Calendar assistant. Call gcal_create_event immediately with the parameters provided.',
+      messages: [{
+        role: 'user',
+        content: 'Create calendar event: "' + summary + '" from ' + startDateTime + ' to ' + endDateTime +
+          (attendees ? ', attendees: ' + attendees : '') +
+          (description ? ', description: ' + description : '')
+      }]
+    })
+  });
+  if (!resp.ok) throw new Error('Server error ' + resp.status);
+  const data = await resp.json();
+  if (data.error) throw new Error('Calendar API: ' + (data.error.message || JSON.stringify(data.error)));
+  return 'Calendar event created ✓';
+}
+
+async function createGmailDraft(to, cc, subject, body) {
+  return await executeGmailDraft(to, cc, subject, body);
+}
+
+// ── OUTLOOK BOARD SYNC ────────────────────────────────────────────────────────
+async function startSync(){
+  const btn=document.getElementById('syncbtn');
+  btn.disabled=true;btn.textContent='Syncing...';
+  document.getElementById('ldot').className='ldot pulse';
+  document.getElementById('slbl').textContent='Syncing...';
+  toast('Scanning Outlook for new action items...');
+  try{
+    const txt=await callClaude(
+      'List this week\'s actionable property management emails from Outlook. For each, provide subject, sender, date, and 1-sentence summary. Focus on items requiring action.',
+      'You are a helpful email triage assistant. Be concise.',
+      ['outlook']
+    );
+    if(txt&&txt.length>20){
+      // Ask Claude to extract structured items
+      const structured=await callClaude(
+        `Extract actionable items from these email summaries as JSON array. Each: {"title","summary","action","urgency":"critical|high|normal|low","category":"safety|deal|parking|leasing|vendor|internal","source","section":"7021 Hollywood Blvd — Safety|HHLA — Active Deal|Hollywood Galaxy — Parking|Hollywood Blvd — Tenant / Leasing|Vendor / Maintenance|Internal / Routine"}. Filter out marketing/auto emails. Max 5 new items. Return JSON array only.\n\nEmails:\n${txt}`,
+        'Return ONLY a valid JSON array. No markdown, no explanation.'
+      );
+      const m=structured.match(/\[[\s\S]*\]/);
+      if(m){
+        let added=0;
+        JSON.parse(m[0]).forEach(ni=>{
+          if(!ni.title)return;
+          const exists=STATE.items.some(ex=>ex.title.toLowerCase().includes(ni.title.toLowerCase().slice(0,18)));
+          if(!exists){STATE.items.push({id:STATE.nextId++,...ni,status:'open',notes:[],addedBy:'Auto-sync',addedTs:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),cardAction:null});added++;}
+        });
+        STATE.lastSync=new Date().toISOString();saveState();render();counts();
+        toast(`Synced — ${added} new item${added!==1?'s':''} added`);
+      }else{toast('Sync complete — no new items');}
+    }else{toast('Sync complete');}
+  }catch(e){toast('Sync unavailable — API not connected');}
+  document.getElementById('ldot').className='ldot on';
+  document.getElementById('slbl').textContent='Synced '+n12();
+  btn.disabled=false;btn.textContent='Sync Outlook';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadState();initUser();render();counts();
+</script>
+</body>
+</html>
 
