@@ -830,15 +830,19 @@ async function runAgent(userMsg){
           max_tokens: 1500,
           system: getSys(),
           tools,
-          messages,
-          _connectors: ['outlook', 'gmail', 'slack', 'calendar', 'dropbox']
+          messages
+          // NOTE: No _connectors here — MCP tokens are tied to claude.ai sessions
+          // Connectors are attached only for specific tool execution calls below
         })
       });
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => ({}));
+        throw new Error((errBody?.error?.message) || 'HTTP ' + resp.status);
+      }
       data = await resp.json();
     } catch(fetchErr) {
       rmTyping();
-      addMsg('ai', '**Connection error** — could not reach the API.\n\nPlease check:\n1. Your ANTHROPIC_API_KEY is set in Render → Environment Variables\n2. The Render service shows Live (not sleeping)\n3. Refresh this page and try again');
+      addMsg('ai', '**Error:** ' + fetchErr.message);
       isBusy = false; document.getElementById('sbtn').disabled = false; return;
     }
     rmTyping();
@@ -1011,7 +1015,6 @@ async function feedToolResult(toolUseId,result,prevContent){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         max_tokens:1000,system:getSys(),
-        _connectors:['outlook','gmail','slack','calendar','dropbox'],
         messages:[
           ...chatHistory.slice(-12),
           {role:'assistant',content:prevContent},
@@ -1019,6 +1022,7 @@ async function feedToolResult(toolUseId,result,prevContent){
         ]
       })
     });
+    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e?.error?.message||'HTTP '+resp.status);}
     const data=await resp.json();
     if(data.content){
       let txt=data.content.filter(b=>b.type==='text').map(b=>b.text).join('').trim();
@@ -1045,14 +1049,26 @@ async function callClaude(prompt, system, connectors=[]) {
     max_tokens: 800,
     system,
     messages: [{ role: 'user', content: prompt }],
-    _connectors: connectors  // server maps these to MCP server URLs
+    _connectors: connectors
   };
   const r = await fetch(API_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
-  if (!r.ok) throw new Error('Server error: ' + r.status + ' — is server.js running?');
+  if (!r.ok) {
+    const errBody = await r.json().catch(() => ({}));
+    const msg = errBody?.error?.message || 'HTTP ' + r.status;
+    // If MCP auth error, strip connectors and retry without them
+    if (msg.includes('Authentication error') || msg.includes('authorization token')) {
+      const body2 = { max_tokens: 800, system, messages: [{ role: 'user', content: prompt }] };
+      const r2 = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body2) });
+      const d2 = await r2.json();
+      if (d2.error) throw new Error(d2.error.message);
+      return (d2.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    }
+    throw new Error(msg);
+  }
   const d = await r.json();
   if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
   return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
@@ -1121,25 +1137,39 @@ async function createGmailDraft(to,cc,subject,body){
 // Each function calls a dedicated Anthropic API request with the MCP server
 // and a system prompt that forces tool use immediately.
 
+
+  // Helper: fetch with MCP auth fallback
+  async function fetchWithFallback(bodyObj) {
+    const r = await fetch(API_BASE, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(bodyObj) });
+    if (!r.ok) {
+      const e = await r.json().catch(()=>({}));
+      const msg = e?.error?.message || 'HTTP '+r.status;
+      if (msg.includes('Authentication error') || msg.includes('authorization token')) {
+        // MCP token not available — retry without connectors, just use Claude directly
+        const body2 = { ...bodyObj };
+        delete body2._connectors;
+        const r2 = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body2) });
+        const d2 = await r2.json();
+        if (d2.error) throw new Error(d2.error.message);
+        return d2;
+      }
+      throw new Error(msg);
+    }
+    return await r.json();
+  }
 async function executeGmailDraft(to, cc, subject, body) {
-  const resp = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      max_tokens: 500,
-      _connectors: ['gmail'],
-      system: 'You are a Gmail draft creator. You MUST call the gmail_create_draft tool immediately with the exact parameters provided. No explanation — just call the tool now.',
-      messages: [{
-        role: 'user',
-        content: 'Call gmail_create_draft RIGHT NOW with:\nto: "' + to + '"\n' +
-          (cc ? 'cc: "' + cc + '"\n' : '') +
-          'subject: "' + subject + '"\nbody: ' + JSON.stringify(body) + '\ncontentType: "text/plain"'
-      }]
-    })
+  const data = await fetchWithFallback({
+    max_tokens: 500,
+    _connectors: ['gmail'],
+    system: 'You are a Gmail draft creator. You MUST call the gmail_create_draft tool immediately with the exact parameters provided. No explanation — just call the tool now.',
+    messages: [{
+      role: 'user',
+      content: 'Call gmail_create_draft RIGHT NOW with:\nto: "' + to + '"\n' +
+        (cc ? 'cc: "' + cc + '"\n' : '') +
+        'subject: "' + subject + '"\nbody: ' + JSON.stringify(body) + '\ncontentType: "text/plain"'
+    }]
   });
-  if (!resp.ok) throw new Error('Server error ' + resp.status + ' — is server.js running?');
-  const data = await resp.json();
-  if (data.error) throw new Error('Gmail API: ' + (data.error.message || JSON.stringify(data.error)));
+  if (data.error) throw new Error('Gmail: ' + (data.error.message || JSON.stringify(data.error)));
   return 'Gmail draft created ✓ — check your Drafts folder';
 }
 
@@ -1155,44 +1185,32 @@ async function executeOutlookDraft(to, cc, subject, body) {
 }
 
 async function executeSlackDraft(channel, message) {
-  const resp = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      max_tokens: 400,
-      _connectors: ['slack'],
-      system: 'You are a Slack assistant. Your ONLY job is to call slack_send_message_draft immediately using the channel name or ID provided. First use slack_search_channels to find the channel ID if only a name is given, then call slack_send_message_draft. Do it now.',
-      messages: [{
-        role: 'user',
-        content: 'Create a Slack draft NOW in channel "' + channel + '" with this message:\n' + message
-      }]
-    })
+  const data = await fetchWithFallback({
+    max_tokens: 400,
+    _connectors: ['slack'],
+    system: 'You are a Slack assistant. Your ONLY job is to call slack_send_message_draft immediately using the channel name or ID provided. First use slack_search_channels to find the channel ID if only a name is given, then call slack_send_message_draft. Do it now.',
+    messages: [{
+      role: 'user',
+      content: 'Create a Slack draft NOW in channel "' + channel + '" with this message:\n' + message
+    }]
   });
-  if (!resp.ok) throw new Error('Server error ' + resp.status + ' — is server.js running?');
-  const data = await resp.json();
-  if (data.error) throw new Error('Slack API: ' + (data.error.message || JSON.stringify(data.error)));
+  if (data.error) throw new Error('Slack: ' + (data.error.message || JSON.stringify(data.error)));
   return 'Slack draft saved ✓ — check Drafts & Sent in Slack';
 }
 
 async function executeCalendarEvent(summary, startDateTime, endDateTime, attendees, description) {
-  const resp = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      max_tokens: 400,
-      _connectors: ['calendar'],
-      system: 'You are a Google Calendar assistant. Call gcal_create_event immediately with the parameters provided.',
-      messages: [{
-        role: 'user',
-        content: 'Create calendar event: "' + summary + '" from ' + startDateTime + ' to ' + endDateTime +
-          (attendees ? ', attendees: ' + attendees : '') +
-          (description ? ', description: ' + description : '')
-      }]
-    })
+  const data = await fetchWithFallback({
+    max_tokens: 400,
+    _connectors: ['calendar'],
+    system: 'You are a Google Calendar assistant. Call gcal_create_event immediately with the parameters provided.',
+    messages: [{
+      role: 'user',
+      content: 'Create calendar event: "' + summary + '" from ' + startDateTime + ' to ' + endDateTime +
+        (attendees ? ', attendees: ' + attendees : '') +
+        (description ? ', description: ' + description : '')
+    }]
   });
-  if (!resp.ok) throw new Error('Server error ' + resp.status);
-  const data = await resp.json();
-  if (data.error) throw new Error('Calendar API: ' + (data.error.message || JSON.stringify(data.error)));
+  if (data.error) throw new Error('Calendar: ' + (data.error.message || JSON.stringify(data.error)));
   return 'Calendar event created ✓';
 }
 
