@@ -740,7 +740,7 @@ async function runAgent(userMsg){
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          max_tokens: 1500,
+          max_tokens: 8192,
           system: getSys(),
           tools,
           messages,
@@ -749,11 +749,14 @@ async function runAgent(userMsg){
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       data = await resp.json();
-    } catch(fetchErr) {
-      rmTyping();
-      addMsg('ai', '**Connection error** — could not reach the API.\n\nPlease check:\n1. Your ANTHROPIC_API_KEY is set in Render → Environment Variables\n2. The Render service shows Live (not sleeping)\n3. Refresh this page and try again');
-      isBusy = false; document.getElementById('sbtn').disabled = false; return;
-    }
+   } catch(fetchErr) {
+  rmTyping();
+  // Change this:
+  addMsg('ai', '**Connection error**...');
+  // To this — shows the REAL error:
+  addMsg('ai', '**Error:** ' + fetchErr.message);
+  isBusy = false; document.getElementById('sbtn').disabled = false; return;
+}
     rmTyping();
     if (data.error) {
       addMsg('ai', '**API error:** ' + (data.error.message || JSON.stringify(data.error)));
