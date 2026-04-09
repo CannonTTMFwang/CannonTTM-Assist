@@ -72,23 +72,30 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Serve the main app
-  if (req.method === 'GET' && (pathname === '/' || pathname === '/app')) {
-    const htmlPath = path.join(__dirname, 'public', 'app.html');
-    if (fs.existsSync(htmlPath)) {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      fs.createReadStream(htmlPath).pipe(res);
-    } else {
-      res.writeHead(500, { 'Content-Type': 'text/html' });
-      res.end('<h2>app.html not found in /public folder</h2>');
-    }
-    return;
-  }
+  // Serve static files from /public
+  if (req.method === 'GET' && pathname !== '/api/claude') {
+    const filePath = pathname === '/'
+      ? path.join(__dirname, 'public', 'app.html')
+      : path.join(__dirname, 'public', pathname);
 
-  // Health check — Render uses this to confirm the service is up
-  if (req.method === 'GET' && pathname === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', service: 'Hollywood Galaxy Command Center' }));
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+        return;
+      }
+      const ext = path.extname(filePath);
+      const mimeTypes = {
+        '.html': 'text/html',
+        '.js':   'application/javascript',
+        '.css':  'text/css',
+        '.json': 'application/json',
+        '.png':  'image/png',
+        '.ico':  'image/x-icon',
+      };
+      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
+      res.end(data);
+    });
     return;
   }
 
@@ -101,12 +108,16 @@ const server = http.createServer((req, res) => {
         const parsed = JSON.parse(body);
         const connectors = parsed._connectors || [];
         delete parsed._connectors;
+
         if (connectors.length > 0) {
           parsed.mcp_servers = connectors
             .filter(c => MCP_SERVERS[c])
             .map(c => MCP_SERVERS[c]);
         }
+
         parsed.model = 'claude-sonnet-4-20250514';
+        parsed.max_tokens = parsed.max_tokens || 8192;  // ← FIX: required by Anthropic API
+
         proxyAnthropicRequest(parsed, res);
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
@@ -120,6 +131,7 @@ const server = http.createServer((req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, () => {
   console.log(`Hollywood Galaxy Command Center running on port ${PORT}`);
+  console.log(`ANTHROPIC_API_KEY: ${API_KEY ? '✓ set' : '✗ MISSING'}`);
 });
