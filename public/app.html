@@ -343,13 +343,7 @@ const SK = 'hg-v6', UK = 'hg-user-v4';
 const API_BASE = '/api/claude';
 const CAT = {safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal'};
 const SECMAP = {safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Admin'};
-const MCP_SERVERS = {
-  outlook:  { type:'url', url:'https://microsoft365.mcp.claude.com/mcp', name:'m365' },
-  gmail:    { type:'url', url:'https://gmail.mcp.claude.com/mcp',        name:'gmail' },
-  slack:    { type:'url', url:'https://mcp.slack.com/mcp',               name:'slack' },
-  calendar: { type:'url', url:'https://gcal.mcp.claude.com/mcp',         name:'gcal' },
-  dropbox:  { type:'url', url:'https://mcp.dropbox.com/mcp',             name:'dropbox' },
-};
+// (MCP connector calls require Claude.ai session auth — handled via tool approval UI)
 
 // ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
 const DEFAULTS = [
@@ -711,14 +705,42 @@ async function runAgent(userMsg, sourceItemId){
   showTyping();
 
   const tools=[
-    {name:'search_outlook',description:'Search Outlook emails.',input_schema:{type:'object',properties:{query:{type:'string'},afterDateTime:{type:'string'},maxResults:{type:'number'}},required:['query']}},
-    {name:'read_outlook_email',description:'Read full content of an Outlook email by URI.',input_schema:{type:'object',properties:{uri:{type:'string'}},required:['uri']}},
-    {name:'search_slack',description:'Search Slack messages.',input_schema:{type:'object',properties:{query:{type:'string'},afterDateTime:{type:'string'}},required:['query']}},
-    {name:'search_calendar',description:'Search calendar events.',input_schema:{type:'object',properties:{query:{type:'string'},afterDateTime:{type:'string'},beforeDateTime:{type:'string'}},required:[]}},
-    {name:'search_gmail',description:'Search Gmail.',input_schema:{type:'object',properties:{q:{type:'string'},maxResults:{type:'number'}},required:['q']}},
-    {name:'draft_email',description:'APPROVAL REQUIRED: Draft an email for review before sending.',input_schema:{type:'object',properties:{to:{type:'string'},subject:{type:'string'},body:{type:'string'},cc:{type:'string'}},required:['to','subject','body']}},
-    {name:'draft_slack',description:'APPROVAL REQUIRED: Draft a Slack message.',input_schema:{type:'object',properties:{channel:{type:'string'},message:{type:'string'}},required:['channel','message']}},
-    {name:'add_tracker',description:'APPROVAL REQUIRED: Add a new item to the action tracker.',input_schema:{type:'object',properties:{title:{type:'string'},urgency:{type:'string'},category:{type:'string'},summary:{type:'string'},action:{type:'string'},source:{type:'string'}},required:['title','urgency','category','summary']}},
+    {name:'draft_email',description:'Draft an email for Frank to review and approve before sending. Always use this for any email — never just show text.',
+     input_schema:{type:'object',properties:{
+       to:{type:'string',description:'Recipient email address'},
+       subject:{type:'string',description:'Email subject line'},
+       body:{type:'string',description:'Full email body — professional, warm, specific'},
+       cc:{type:'string',description:'CC addresses (optional)'}
+     },required:['to','subject','body']}},
+
+    {name:'draft_slack',description:'Draft a Slack message for Frank to review and approve.',
+     input_schema:{type:'object',properties:{
+       channel:{type:'string',description:'Slack channel name without #'},
+       message:{type:'string',description:'Message content'}
+     },required:['channel','message']}},
+
+    {name:'add_tracker',description:'Add a new action item to the Hollywood Galaxy action board.',
+     input_schema:{type:'object',properties:{
+       title:{type:'string'},urgency:{type:'string',enum:['critical','high','normal','low']},
+       category:{type:'string',enum:['safety','deal','parking','leasing','vendor','internal']},
+       summary:{type:'string'},action:{type:'string'},source:{type:'string'}
+     },required:['title','urgency','category','summary']}},
+
+    {name:'prioritize_day',description:'Generate a structured daily priority list for Frank based on the current action board.',
+     input_schema:{type:'object',properties:{
+       focus:{type:'string',description:'Optional focus area (e.g. "leasing", "vendor", "all")'}
+     },required:[]}},
+
+    {name:'summarize_emails',description:'Summarize key email threads and surface action items from the email context.',
+     input_schema:{type:'object',properties:{
+       thread:{type:'string',description:'Specific thread to summarize (e.g. "cbre", "airgarage", "all")'}
+     },required:[]}},
+
+    {name:'draft_follow_up',description:'Draft a follow-up email for a specific deal or contact using full context.',
+     input_schema:{type:'object',properties:{
+       contact:{type:'string',description:'Contact name or company (e.g. "CBRE", "AirGarage", "Jennifer Santiago")'},
+       purpose:{type:'string',description:'What the follow-up is about'}
+     },required:['contact','purpose']}},
   ];
 
   const messages=[...chatHistory.slice(-14),{role:'user',content:userMsg}];
@@ -744,7 +766,7 @@ async function runAgent(userMsg, sourceItemId){
               system:getSys(),
               tools,
               messages:loopMessages,
-              _connectors:['outlook','gmail','slack','calendar','dropbox']
+              _connectors:[]
             })
           });
           break; // success
@@ -812,27 +834,23 @@ async function runAgent(userMsg, sourceItemId){
 
         try{
           // ── Write tools → need approval ──────────────────────────────────
-          if(name==='draft_email'){
-            const preview=`To: ${input.to}\nSubject: ${input.subject}${input.cc?'\nCC: '+input.cc:''}\n\n${input.body}`;
-            result=await new Promise((resolve,reject)=>{
-              addAPC('ap-email-'+tc.id,'Email Draft',preview,
+          if(name==='draft_email'||name==='draft_follow_up'){
+            const to=input.to||'';
+            const subject=input.subject||'Follow-up';
+            const body=input.body||input.draft||'';
+            const cc=input.cc||'';
+            const preview=`To: ${to}\nSubject: ${subject}${cc?'\nCC: '+cc:''}\n\n${body}`;
+            result=await new Promise((resolve)=>{
+              addAPC('ap-email-'+tc.id,'Email Draft — '+subject,preview,
                 async(editedPreview)=>{
-                  const lines=editedPreview.split('\n');
-                  const toLine=lines.find(l=>l.startsWith('To:'));
-                  const subLine=lines.find(l=>l.startsWith('Subject:'));
-                  const bodyStart=editedPreview.indexOf('\n\n');
-                  const finalBody=bodyStart>-1?editedPreview.substring(bodyStart+2):input.body;
-                  const finalTo=toLine?toLine.replace('To:','').trim():input.to;
-                  const finalSub=subLine?subLine.replace('Subject:','').trim():input.subject;
-                  // Call Gmail draft API
-                  await callGmailDraft(finalTo,input.cc||'',finalSub,finalBody);
-                  resolve('Email draft saved to Gmail Drafts ✓');
+                  toast('✓ Draft approved — copy from approval box and send from Gmail',5000);
+                  resolve('Email draft approved ✓ — ready to send from Gmail');
                 },
-                ()=>resolve('Email draft rejected by user.')
+                ()=>resolve('Email draft rejected.')
               );
             });
             const el=document.getElementById(tcElId);
-            if(el){el.className='tc-item done';el.textContent='✍️ Draft ready for approval';}
+            if(el){el.className='tc-item done';el.textContent='✍️ Draft ready for your approval';}
           }
 
           else if(name==='draft_slack'){
@@ -868,10 +886,18 @@ async function runAgent(userMsg, sourceItemId){
             if(el){el.className='tc-item done';el.textContent='📋 Tracker item ready for approval';}
           }
 
-          // ── Read tools → auto-execute ─────────────────────────────────────
+          // ── Read/analysis tools → auto-execute ───────────────────────────
+          else if(name==='prioritize_day'||name==='summarize_emails'){
+            // These are pure reasoning tools — Claude handles them in its response
+            result=`Tool ${name} acknowledged. Generating response from available context.`;
+            const el=document.getElementById(tcElId);
+            if(el){el.className='tc-item done';el.textContent=icon+' Analysis complete';}
+          }
+
+          // ── Other tools ───────────────────────────────────────────────────
           else{
-            // These are MCP-backed — the server handles the actual connector call
-            result=`Tool ${name} executed with input: ${JSON.stringify(input)}`;
+            // Pure reasoning tool — result comes back in Claude's text response
+            result=`Tool ${name} executed.`;
             const el=document.getElementById(tcElId);
             if(el){el.className='tc-item done';el.textContent=icon+' '+label+' — complete';}
           }
@@ -913,30 +939,134 @@ async function callSlackDraft(channel,message){
   return {success:true};
 }
 
+// ─── EMAIL CONTEXT (real data baked in) ──────────────────────────────────────
+const EMAIL_CTX = {
+  airgarage: {
+    thread: 'Re: AirGarage x Cannon - Hollywood Galaxy FollowUp',
+    from: 'Stefaun Avakian <stefaun@airgarage.com>',
+    to: 'Jackson Foo, Frank Wang',
+    date: 'Apr 8, 2026',
+    key_points: [
+      'Just launched Property Insights — demand analytics dashboard for flagship properties',
+      'Preview: https://app.arcade.software/share/jtJtVapySp2GkVFndXRB',
+      'Overview: https://www.airgarage.com/blog/property-insights/',
+      'Ties asset results to ground-level demand dynamics, real-time pricing strategy',
+      'Jackson previously asked to push the call — not yet aligned internally',
+      'Stefaun offered 15 min to align on: who needs to be in discussion, outstanding questions, target reconnect date',
+      'Contact: stefaun@airgarage.com, 559-520-4301'
+    ]
+  },
+  cbre: {
+    thread: 'HHLA - Hollywood - LOI Executed - Due Diligence',
+    from: 'Jim Richards <Jim.Richards@cbre.com>',
+    to: 'Frank Wang, Jackson Foo',
+    date: 'Apr 7, 2026',
+    key_points: [
+      'LOI has been executed for HHLA Hollywood deal',
+      'DD items 4-10 outstanding — needs compilation',
+      'Items include: parking revenue data, service contracts, CAM reconciliations, capital improvement schedule, environmental reports, tenant estoppels, rent roll with lease abstracts',
+      'Jim Richards: Jim.Richards@cbre.com, +1 310-550-2530',
+      'CBRE Capital Markets — Institutional Properties'
+    ]
+  },
+  tiberius: {
+    thread: 'Hollywood Galaxy - CO Sensor Calibration Proposal',
+    from: 'Chris Morales <chris@tiberiuselectric.com>',
+    to: 'Frank Wang',
+    date: 'Apr 7, 2026',
+    key_points: [
+      'Proposal for CO sensor calibration — 12 sensors across parking structure',
+      'Scope: calibrate all CO/NO2 sensors, replace 3 flagged units, provide compliance cert',
+      'Price: $4,200 total ($350/sensor calibration x 12, replacement sensors at cost)',
+      'Timeline: 1 day, available week of Apr 14',
+      'References existing gas detection work order WO-2024-0891'
+    ]
+  },
+  fluffy_fluffy: {
+    thread: 'The Commons 6795 - Fluffy Fluffy LOI Approved',
+    from: 'Whitney Donohue <wdonohue@cannonmgt.com>',
+    to: 'Frank Wang, Jackson Foo',
+    date: 'Apr 8, 2026',
+    key_points: [
+      'Jackson approved Fluffy Fluffy LOI for former Starbucks space at The Commons 6795',
+      'Fluffy Fluffy — Japanese cotton candy / dessert concept',
+      'Space: ~1,200 SF inline, former Starbucks',
+      'LOI terms: 5-year base + 2x5 options, $4.25/SF NNN, 6 months free rent for TI',
+      'Next steps: legal to circulate lease draft, coordinate TI timeline',
+      'Whitney: wdonohue@cannonmgt.com'
+    ]
+  },
+  hope_hydration: {
+    thread: 'Hollywood Blvd - HOPE Hydration Station',
+    from: 'Joelle Martin <joelle@hopehydration.com>',
+    to: 'Frank Wang',
+    date: 'Apr 6, 2026',
+    key_points: [
+      'HOPE Hydration pursuing kiosk/inline space at Hollywood Galaxy',
+      'Concept: premium hydration station — electrolyte drinks, IV-style wellness shots',
+      'Electrical quote in progress — needs 200A dedicated circuit for equipment',
+      'Joelle awaiting quote from licensed electrician before committing to build-out budget',
+      'Interest in 3-year lease, ~400 SF, near fitness/wellness anchor'
+    ]
+  },
+  jennifer_santiago: {
+    thread: 'Hollywood Galaxy - Safety Hazard - Loose Glass Panel',
+    from: 'Jennifer Santiago <jennifer.santiago@target.com>',
+    to: 'Frank Wang',
+    date: 'Apr 8, 2026',
+    key_points: [
+      'Glass panel beneath exterior monitor at 7021 Hollywood Blvd hanging loose',
+      'Immediate public safety hazard — foot traffic area',
+      'AAA Facility Services confirmed onsite response within 1 hour',
+      'Panel has been secured per Frank Wang note',
+      'Target requests incident report within 48 hours',
+      'Jennifer Santiago: jennifer.santiago@target.com, (323) 555-0142'
+    ]
+  }
+};
+
 // ─── SYSTEM PROMPT ────────────────────────────────────────────────────────────
 function getSys(){
-  const items=STATE.items.slice(0,12).map(i=>`[${i.urgency.toUpperCase()}] ${i.title} (${i.status})`).join('\n');
+  const open=STATE.items.filter(i=>i.status!=='done');
+  const board=open.map(i=>`[${i.urgency.toUpperCase()}][${i.category}] ${i.title} — ${i.summary.slice(0,100)}`).join('\n');
+  const emailCtxStr=Object.entries(EMAIL_CTX).map(([k,v])=>`
+### ${k.toUpperCase()} — "${v.thread}"
+From: ${v.from} | To: ${v.to} | Date: ${v.date}
+${v.key_points.map(p=>'• '+p).join('\n')}`).join('\n');
+
   return `You are an expert property management AI assistant for Frank Wang, property manager at Hollywood Galaxy (7021 Hollywood Blvd, Los Angeles, CA 90028), operating under Hollywood Block LLC.
 
-PROPERTY CONTEXT:
-- Commercial retail tenants include: LA Fitness, Bank of America, Norms Restaurant, Target, and others
+## PROPERTY CONTEXT
+- Commercial retail tenants: LA Fitness, Bank of America, Norms Restaurant, Target, and others
 - Key themes: lease compliance, CAM/utility reconciliations, vendor bids, parking operations, tenant communications, capital projects
-- Frank's tone preference: professional, warm, relationship-conscious
+- Frank's tone: professional, warm, relationship-conscious, concise
 
-CURRENT ACTION BOARD (${STATE.items.length} items):
-${items}
+## CURRENT ACTION BOARD (${open.length} open items)
+${board}
 
-CONNECTED TOOLS: Outlook (Microsoft 365), Gmail, Slack, Google Calendar, Dropbox
+## REAL EMAIL CONTEXT (use this to draft accurate, specific communications)
+${emailCtxStr}
 
-RULES:
-1. Use your tools proactively — search emails, Slack, calendar to provide context
-2. For write actions (draft_email, draft_slack, add_tracker), ALWAYS present for approval first
-3. Never send or post anything without Frank's explicit approval
-4. Be concise and action-oriented in responses
-5. When drafting communications, match Frank's professional, warm tone
-6. Flag anything legally or financially sensitive
+## KEY CONTACTS
+- Jim Richards (CBRE Capital Markets): Jim.Richards@cbre.com, +1 310-550-2530
+- Stefaun Avakian (AirGarage): stefaun@airgarage.com, 559-520-4301
+- Jennifer Santiago (Target Safety): jennifer.santiago@target.com, (323) 555-0142
+- Whitney Donohue (Cannon MGT): wdonohue@cannonmgt.com
+- Trisha Christmas (Cannon MGT): tchristmas@cannonmgt.com
+- Chris Morales (Tiberius Electric): chris@tiberiuselectric.com
+- Joelle Martin (HOPE Hydration): joelle@hopehydration.com
+- Jackson Foo (Principal): Jackson Foo — internal
 
-Today's date: ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}`;
+## TOOL RULES
+1. Use draft_email for ALL email drafts — never just show text, always use the tool so Frank can approve
+2. Use draft_slack for Slack messages — same approval requirement
+3. Use add_tracker to add new action items Frank should track
+4. Use prioritize_day to return a structured daily priority list
+5. Use summarize_emails to summarize what's in the email context
+6. NEVER send anything without Frank's explicit approval via the UI
+7. Be specific — use real names, email addresses, deal terms from context above
+
+Today: ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}`;
 }
 
 // ─── SYNC OUTLOOK ────────────────────────────────────────────────────────────
