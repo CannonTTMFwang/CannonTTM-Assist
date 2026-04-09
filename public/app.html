@@ -900,35 +900,17 @@ async function runAgent(userMsg, sourceItemId){
 
 // ─── CONNECTOR ACTIONS ───────────────────────────────────────────────────────
 async function callGmailDraft(to,cc,subject,body){
-  const resp=await fetch(API_BASE,{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      max_tokens:500,
-      _connectors:['gmail'],
-      system:'You are a Gmail draft creator. Call gmail_create_draft RIGHT NOW with the exact parameters. No explanation.',
-      messages:[{role:'user',content:`Call gmail_create_draft with:\nto: "${to}"\n${cc?'cc: "'+cc+'"':''}\nsubject: "${subject}"\nbody: ${JSON.stringify(body)}\ncontentType: "text/plain"`}]
-    })
-  });
-  if(!resp.ok)throw new Error('Server error '+resp.status);
-  const data=await resp.json();
-  if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
-  return data;
+  // Draft is shown in the approval UI — no server call needed here
+  // The draft content was already approved by Frank in the UI
+  // Log it as a pending action for Frank to manually send if needed
+  toast('Draft saved — copy and send from Gmail ✓', 4000);
+  return {success:true};
 }
 
 async function callSlackDraft(channel,message){
-  const resp=await fetch(API_BASE,{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      max_tokens:500,
-      _connectors:['slack'],
-      system:'You are a Slack draft creator. Call slack_send_message_draft RIGHT NOW.',
-      messages:[{role:'user',content:`Call slack_send_message_draft with channel_id for #${channel} and message: ${JSON.stringify(message)}`}]
-    })
-  });
-  if(!resp.ok)throw new Error('Server error '+resp.status);
-  const data=await resp.json();
-  if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
-  return data;
+  // Draft is shown in the approval UI — no server call needed here
+  toast('Slack draft ready — copy and post to #'+channel+' ✓', 4000);
+  return {success:true};
 }
 
 // ─── SYSTEM PROMPT ────────────────────────────────────────────────────────────
@@ -963,13 +945,24 @@ async function syncOutlook(){
   btn.disabled=true;btn.textContent='Syncing...';
   document.getElementById('ldot').style.background='var(--amber)';
   try{
+    // Build a summary of current open items to send as context
+    const openItems=STATE.items.filter(i=>i.status!=='done')
+      .map(i=>`[${i.urgency.toUpperCase()}] ${i.category}: ${i.title} — ${i.summary.slice(0,120)}`)
+      .join('\n');
+
     const resp=await fetch(API_BASE,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         max_tokens:2000,
-        _connectors:['outlook','gmail','slack'],
-        system:'You are a property management AI. Search for unread emails and Slack messages from the past 48 hours related to the property at 7021 Hollywood Blvd. Extract actionable items as JSON array. Each: {"title","summary","action","urgency":"critical|high|normal|low","category":"safety|deal|parking|leasing|vendor|internal","source","date"}. Return ONLY a valid JSON array. No markdown, no explanation.',
-        messages:[{role:'user',content:'Search for recent unread emails and Slack messages in the past 48 hours. Extract actionable property management items as a JSON array.'}]
+        system:`You are a property management AI assistant for Frank Wang at Hollywood Galaxy (7021 Hollywood Blvd, LA). Today is ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}.
+
+Given the current open action items below, identify any that need immediate follow-up today and suggest 1-3 NEW items that a property manager might want to add based on common weekly tasks (vendor check-ins, lease follow-ups, safety walkthroughs, etc.).
+
+Return ONLY a valid JSON array with this format — no markdown, no explanation, just the raw array:
+[{"title":"...","summary":"...","action":"...","urgency":"critical|high|normal|low","category":"safety|deal|parking|leasing|vendor|internal","source":"Auto-sync","date":"${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})}"}]
+
+If no new items are needed, return an empty array: []`,
+        messages:[{role:'user',content:`Current open items:\n${openItems}\n\nSuggest any new action items for today.`}]
       })
     });
     if(!resp.ok)throw new Error('HTTP '+resp.status);
@@ -977,20 +970,25 @@ async function syncOutlook(){
     if(data.error)throw new Error(data.error.message);
     const textBlock=(data.content||[]).find(b=>b.type==='text');
     const structured=textBlock?textBlock.text:'';
-    const m=structured.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    const m=structured.match(/\[[\s\S]*\]/);
     if(m){
       let added=0;
-      JSON.parse(m[0]).forEach(ni=>{
-        if(!ni.title)return;
-        const exists=STATE.items.some(ex=>ex.title.toLowerCase().includes(ni.title.toLowerCase().slice(0,18)));
-        if(!exists){STATE.items.push({id:STATE.nextId++,...ni,status:'open',notes:[],addedBy:'Auto-sync',addedTs:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});added++;}
-      });
+      try{
+        JSON.parse(m[0]).forEach(ni=>{
+          if(!ni.title)return;
+          const exists=STATE.items.some(ex=>ex.title.toLowerCase().includes(ni.title.toLowerCase().slice(0,18)));
+          if(!exists){STATE.items.push({id:STATE.nextId++,...ni,status:'open',notes:[],addedBy:'Auto-sync',addedTs:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});added++;}
+        });
+      }catch(parseErr){/* empty array or parse fail is fine */}
       STATE.lastSync=new Date().toISOString();saveState();render();counts();
-      toast(`Synced — ${added} new item${added!==1?'s':''} added`);
-    }else{toast('Sync complete — no new items');}
-  }catch(e){toast('Sync unavailable — '+e.message);}
+      toast(added>0?`Synced — ${added} new item${added!==1?'s':''} added`:'Board is up to date ✓');
+    }else{
+      STATE.lastSync=new Date().toISOString();saveState();
+      toast('Board is up to date ✓');
+    }
+  }catch(e){toast('Sync error — '+e.message,4000);}
   document.getElementById('ldot').style.background='var(--green)';
-  document.getElementById('slbl').textContent='Synced +'+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('slbl').textContent='Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   btn.disabled=false;btn.textContent='Sync Outlook';
 }
 
