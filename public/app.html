@@ -269,6 +269,13 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
 .sle-msg{color:var(--t2);}
 .sle-msg.ok{color:var(--green);}
 .sle-msg.warn{color:var(--amber);}
+
+/* ── NOTION SECTION ── */
+.notion-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:12px;font-size:10px;font-family:'DM Mono',monospace;background:var(--purple-bg);color:var(--purple);border:1px solid rgba(155,127,232,0.25);margin-bottom:4px;}
+.notion-pill::before{content:'N';font-weight:600;}
+.notion-scan-btn{padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;border:1px solid rgba(155,127,232,0.3);color:var(--purple);background:var(--purple-bg);font-family:'DM Sans',sans-serif;transition:all .14s;}
+.notion-scan-btn:hover{background:rgba(155,127,232,0.18);border-color:rgba(155,127,232,0.5);}
+.notion-scan-btn:disabled{opacity:0.4;cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -318,6 +325,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
     <div class="ni" onclick="sc2('parking',this)"><div class="nd" style="background:var(--teal)"></div>Parking<span class="nc">1</span></div>
     <div class="ni" onclick="sc2('leasing',this)"><div class="nd" style="background:var(--green)"></div>Leasing<span class="nc">3</span></div>
     <div class="ni" onclick="sc2('vendor',this)"><div class="nd" style="background:var(--amber)"></div>Vendor<span class="nc">2</span></div>
+    <div class="ni" onclick="sc2('notion',this)"><div class="nd" style="background:var(--purple)"></div>Notion<span class="nc" id="cc-notion">0</span></div>
   </div>
   <div class="ns">
     <div class="nsl">AI Quick Tasks</div>
@@ -326,6 +334,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
     <div class="ni" onclick="sq('What meetings do I have coming up this week?')"><div class="nd" style="background:var(--t3)"></div>My calendar</div>
     <div class="ni" onclick="sq('Draft a weekly status update for Tyler Mateen covering all open action items at Hollywood Galaxy')"><div class="nd" style="background:var(--t3)"></div>Draft weekly update</div>
     <div class="ni" onclick="sq('What are my most critical open items and what should I do first today?')"><div class="nd" style="background:var(--t3)"></div>Prioritize my day</div>
+    <div class="ni" onclick="startNotionSync(true)"><div class="nd" style="background:var(--purple)"></div>Scan Notion tasks</div>
     <div class="ni" onclick="openAddModal()"><div class="nd" style="background:var(--t3)"></div>Add item manually</div>
   </div>
 </aside>
@@ -374,10 +383,11 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
     <span class="conn"><span class="conn-dot"></span>Slack</span>
     <span class="conn"><span class="conn-dot"></span>Calendar</span>
     <span class="conn"><span class="conn-dot"></span>Dropbox</span>
+    <span class="conn" style="color:var(--purple);"><span class="conn-dot" style="background:var(--purple)"></span>Notion</span>
   </div>
   <div class="cmsgs" id="cmsgs">
     <div class="msg ai">
-      <div class="bubble">Hi Frank 👋 I'm your agentic assistant for <strong>Hollywood Galaxy</strong>.<br><br>I'm connected to <strong>Outlook, Gmail, Slack, Calendar, and Dropbox</strong>. Use the action buttons on each card to trigger specific tasks — I'll read live email context and draft responses for your approval.<br><br>Nothing gets sent without your go-ahead.</div>
+      <div class="bubble">Hi Frank 👋 I'm your agentic assistant for <strong>Hollywood Galaxy</strong>.<br><br>I'm connected to <strong>Outlook, Gmail, Slack, Calendar, Dropbox, and Notion</strong>. Use the action buttons on each card to trigger specific tasks — I'll read live email context and draft responses for your approval.<br><br>Nothing gets sent without your go-ahead.</div>
       <div class="mtime">Now</div>
     </div>
   </div>
@@ -410,7 +420,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
     <input class="mi" id="mso" placeholder="Source">
     <div class="mi2">
       <select class="mi" id="mu" style="padding:7px 9px;"><option value="critical">Critical</option><option value="high">High</option><option value="normal" selected>Normal</option><option value="low">Low</option></select>
-      <select class="mi" id="mc" style="padding:7px 9px;"><option value="safety">Safety</option><option value="deal">HHLA Deal</option><option value="parking">Parking</option><option value="leasing">Leasing</option><option value="vendor">Vendor</option><option value="internal">Internal</option></select>
+      <select class="mi" id="mc" style="padding:7px 9px;"><option value="safety">Safety</option><option value="deal">HHLA Deal</option><option value="parking">Parking</option><option value="leasing">Leasing</option><option value="vendor">Vendor</option><option value="internal">Internal</option><option value="notion">Notion</option></select>
     </div>
     <div class="macts">
       <button class="hbtn" onclick="document.getElementById('addm').classList.remove('open')">Cancel</button>
@@ -436,9 +446,9 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v7',UK='hg-user-v4';
-const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal'};
-const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine'};
+const SK='hg-v8',UK='hg-user-v4';
+const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
+const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
 // Real email context pulled live
 const EMAIL_CTX = {
@@ -815,8 +825,10 @@ async function runAgent(userMsg){
     {name:'search_gmail',description:'Search Gmail.',input_schema:{type:'object',properties:{q:{type:'string'},maxResults:{type:'number'}},required:['q']}},
     {name:'draft_email',description:'APPROVAL REQUIRED: Draft an email for review before sending.',input_schema:{type:'object',properties:{to:{type:'string'},cc:{type:'string'},subject:{type:'string'},body:{type:'string'},service:{type:'string',enum:['gmail','outlook']}},required:['to','subject','body']}},
     {name:'draft_slack',description:'APPROVAL REQUIRED: Draft a Slack message.',input_schema:{type:'object',properties:{channel:{type:'string'},message:{type:'string'}},required:['channel','message']}},
-    {name:'add_tracker',description:'APPROVAL REQUIRED: Add a new item to the action tracker.',input_schema:{type:'object',properties:{title:{type:'string'},summary:{type:'string'},action:{type:'string'},urgency:{type:'string',enum:['critical','high','normal','low']},category:{type:'string',enum:['safety','deal','parking','leasing','vendor','internal']},source:{type:'string'}},required:['title','urgency','category']}}
-  ];
+    {name:'add_tracker',description:'APPROVAL REQUIRED: Add a new item to the action tracker.',input_schema:{type:'object',properties:{title:{type:'string'},summary:{type:'string'},action:{type:'string'},urgency:{type:'string',enum:['critical','high','normal','low']},category:{type:'string',enum:['safety','deal','parking','leasing','vendor','internal','notion']},source:{type:'string'}},required:['title','urgency','category']}}
+  ,
+  {name:'search_notion',description:'Search Notion workspace for recently updated pages, tasks, and meeting notes to find actionable items.',input_schema:{type:'object',properties:{query:{type:'string',description:'What to search for'},daysBack:{type:'number',description:'Days back to look, default 3'}},required:['query']}}
+];
 
   const messages=[...chatHistory.slice(-14),{role:'user',content:userMsg}];
 
@@ -871,11 +883,16 @@ async function runAgent(userMsg){
     }
     if(textParts.trim())addMsg('ai',textParts.trim());
 
-    chatHistory.push({role:'assistant',content:data.content});
-
-    // Execute tool calls
-    for(const tc of toolCalls){
-      await doTool(tc,data.content,messages);
+    // Execute tool calls BEFORE pushing to history
+    // This prevents tool_use/tool_result mismatch in chatHistory
+    if(toolCalls.length > 0){
+      for(const tc of toolCalls){
+        await doTool(tc,data.content,messages);
+      }
+    } else {
+      // No tool calls - safe to push text response to history
+      const textForHistory = data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+      if(textForHistory) chatHistory.push({role:'assistant',content:textForHistory});
     }
 
   }catch(e){
@@ -989,9 +1006,9 @@ async function doTool(tc,prevContent,prevMessages){
   }
 
   // Read actions → execute
-  const icon={search_outlook:'✉',read_outlook_email:'✉',search_slack:'#',search_calendar:'📅',search_gmail:'✉'}[name]||'⚙';
-  const cls={search_outlook:'outlook',read_outlook_email:'outlook',search_slack:'slack',search_calendar:'cal',search_gmail:'gmail'}[name]||'system';
-  const label={search_outlook:'Searching Outlook',read_outlook_email:'Reading email',search_slack:'Searching Slack',search_calendar:'Checking calendar',search_gmail:'Searching Gmail'}[name]||name;
+  const icon={search_outlook:'✉',read_outlook_email:'✉',search_slack:'#',search_calendar:'📅',search_gmail:'✉',search_notion:'N'}[name]||'⚙';
+  const cls={search_outlook:'outlook',read_outlook_email:'outlook',search_slack:'slack',search_calendar:'cal',search_gmail:'gmail',search_notion:'system'}[name]||'system';
+  const label={search_outlook:'Searching Outlook',read_outlook_email:'Reading email',search_slack:'Searching Slack',search_calendar:'Checking calendar',search_gmail:'Searching Gmail',search_notion:'Searching Notion'}[name]||name;
   const tcElId=addTC(label,cls,icon);
 
   try{
@@ -1001,6 +1018,7 @@ async function doTool(tc,prevContent,prevMessages){
     else if(name==='search_slack') result=await doSlackSearch(input);
     else if(name==='search_calendar') result=await doCalSearch(input);
     else if(name==='search_gmail') result=await doGmailSearch(input);
+    else if(name==='search_notion') result=await doNotionSearch(input);
     updTC(tcElId,'ok',result);
     await feedToolResult(tcId,result,prevContent);
   }catch(e){
@@ -1009,34 +1027,55 @@ async function doTool(tc,prevContent,prevMessages){
   }
 }
 
-async function feedToolResult(toolUseId,result,prevContent){
+async function feedToolResult(toolUseId, result, prevContent){
+  // Build a clean message sequence:
+  // [prior history] + [assistant with tool_use] + [user with tool_result]
+  // chatHistory at this point does NOT yet contain prevContent (we deferred that push)
+  // so we can safely append prevContent + tool_result without duplication
   try{
-    const resp=await fetch(API_BASE,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        max_tokens:1000,system:getSys(),
-        messages:[
-          ...chatHistory.slice(-12),
-          {role:'assistant',content:prevContent},
-          {role:'user',content:[{type:'tool_result',tool_use_id:toolUseId,content:result}]}
+    const historyBeforeTool = chatHistory.slice(-10);
+    const resp = await fetch(API_BASE,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        max_tokens: 1000,
+        system: getSys(),
+        messages: [
+          ...historyBeforeTool,
+          {role:'assistant', content: prevContent},
+          {role:'user', content:[{type:'tool_result', tool_use_id: toolUseId, content: String(result)}]}
         ]
       })
     });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e?.error?.message||'HTTP '+resp.status);}
-    const data=await resp.json();
+    if(!resp.ok){
+      const e=await resp.json().catch(()=>({}));
+      const msg = e?.error?.message||'HTTP '+resp.status;
+      addMsg('ai','Tool error: '+msg);
+      return;
+    }
+    const data = await resp.json();
     if(data.content){
-      let txt=data.content.filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+      const txt = data.content.filter(b=>b.type==='text').map(b=>b.text).join('').trim();
       if(txt.includes('APPROVAL_REQUIRED|')){
         const segs=txt.split('APPROVAL_REQUIRED|');
-        if(segs[0].trim())addMsg('ai',segs[0].trim());
+        if(segs[0].trim()) addMsg('ai',segs[0].trim());
         for(let i=1;i<segs.length;i++){
           const parts=segs[i].split('|');
           if(parts.length>=3){const apId='ap-'+Date.now()+'-'+i;addApprovalFromText(apId,parts[0],parts[1],parts.slice(2).join('|'));}
         }
-      }else if(txt){addMsg('ai',txt);}
-      chatHistory.push({role:'assistant',content:txt});
+      } else if(txt){
+        addMsg('ai',txt);
+      }
+      // Now it's safe to add the full exchange to chatHistory
+      const userMsg = chatHistory[chatHistory.length-1];
+      if(userMsg && userMsg.role==='user' && typeof userMsg.content === 'string'){
+        chatHistory.push({role:'assistant', content: prevContent});
+        chatHistory.push({role:'user', content:[{type:'tool_result', tool_use_id:toolUseId, content:String(result)}]});
+        if(txt) chatHistory.push({role:'assistant', content:txt});
+      }
     }
-  }catch(e){}
+  }catch(e){
+    addMsg('ai','Tool result error: '+e.message);
+  }
 }
 
 // ── CONNECTOR CALLS ───────────────────────────────────────────────────────────
@@ -1117,6 +1156,17 @@ async function doGmailSearch(input){
     ['gmail']
   );
   return txt||'No results found';
+}
+
+async function doNotionSearch(input){
+  const q = input.query || 'open action items tasks';
+  const days = input.daysBack || 3;
+  const txt = await callClaude(
+    'Search Notion for pages updated in the last ' + days + ' days related to: "' + q + '". For each result show: page title, last updated date, and list any specific open tasks, unchecked items [ ], RED-highlighted items, or action items assigned to Frank Wang (FW). Include PM meeting notes, accounting weekly updates, and task databases.',
+    'You are a Notion workspace scanner for Frank Wang at Hollywood Block LLC / Cannon Management. Summarize open action items clearly.',
+    ['notion']
+  );
+  return txt || 'No Notion results found';
 }
 
 async function createGmailDraft(to,cc,subject,body){
@@ -1216,6 +1266,121 @@ async function executeCalendarEvent(summary, startDateTime, endDateTime, attende
 
 async function createGmailDraft(to, cc, subject, body) {
   return await executeGmailDraft(to, cc, subject, body);
+}
+
+// ── NOTION SYNC ENGINE ───────────────────────────────────────────────────────
+// Searches Notion for recently updated pages with open tasks and converts them
+// to action items on the board. Runs as part of the main 15-min scan cycle.
+
+const NOTION_QUERIES = [
+  'open tasks action items',
+  'PM meeting agenda items',
+  'vendors COI expired',
+  'LADWP HHLA outstanding',
+  'accounting open items',
+];
+let notionSyncRunning = false;
+
+async function startNotionSync(manual=false) {
+  if (notionSyncRunning) return;
+  notionSyncRunning = true;
+
+  if (manual) {
+    toast('Scanning Notion workspace...');
+    logSync('Scanning Notion...', 'ok');
+  }
+
+  try {
+    // Search Notion for recently updated actionable pages
+    const notionRaw = await callClaude(
+      `Search Notion for pages updated in the last 7 days that contain open tasks, action items, or unresolved issues relevant to Frank Wang as property manager at Hollywood Block LLC. 
+      
+      Focus on:
+      - Pages with unchecked checkboxes ([ ] items)
+      - Items highlighted RED (vendors with expired COIs, urgent tasks)
+      - Mentions of FW or Frank needing to take action
+      - Open accounting items, vendor issues, LADWP, HHLA, Triangle
+      - Meeting notes with outstanding action items
+      
+      Search queries to run: "open tasks PM meeting", "COI expired vendors", "HHLA outstanding", "Frank action items"
+      
+      For each page found, list: page title, last updated, and the specific open items/tasks from it. Max 15 items total across all pages.`,
+      'You are a Notion workspace scanner for Frank Wang. Identify and list open action items clearly. Focus only on items requiring action.',
+      ['notion']
+    );
+
+    if (!notionRaw || notionRaw.length < 30) {
+      if (manual) toast('Notion scan complete — no new items');
+      logSync('Notion: no new items', 'ok');
+      notionSyncRunning = false;
+      return;
+    }
+
+    // AI triage — convert Notion content to structured action items
+    const structured = await callClaude(
+      `Convert these Notion workspace updates into actionable items for Frank Wang:
+
+${notionRaw}
+
+Return a JSON array. Each item: {"title":"concise title","summary":"2 sentence summary of the issue","action":"what Frank must do","urgency":"critical|high|normal|low","category":"notion","source":"Notion page name · date","section":"Notion / Tasks & Meetings","notionUrl":"if visible"}. Skip completed items, routine reminders, and non-actionable updates. Max 6 items. Return ONLY valid JSON array.`,
+      'Return ONLY a valid JSON array. No markdown, no explanation.',
+      []
+    );
+
+    const match = structured && structured.match(/\[[\s\S]*\]/);
+    if (match) {
+      let added = 0;
+      const newItems = [];
+      JSON.parse(match[0]).forEach(ni => {
+        if (!ni.title || ni.title.length < 5) return;
+        const titleKey = ni.title.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim().slice(0,28);
+        const isDupe = STATE.items.some(ex => {
+          const exKey = ex.title.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim().slice(0,28);
+          return exKey === titleKey || exKey.includes(titleKey.slice(0,18)) || titleKey.includes(exKey.slice(0,18));
+        });
+        if (!isDupe) {
+          const item = {
+            id: STATE.nextId++,
+            urgency: ni.urgency || 'normal',
+            category: 'notion',
+            title: ni.title,
+            summary: ni.summary || '',
+            action: ni.action || '',
+            source: ni.source || 'Notion · ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+            status: 'open',
+            notes: [],
+            section: 'Notion / Tasks & Meetings',
+            addedBy: 'Notion Scan',
+            addedTs: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+            cardAction: ni.notionUrl ? {
+              label: 'Open in Notion ↗',
+              prompt: `Help me action this Notion task: "${ni.title}". Summary: ${ni.summary}. Action needed: ${ni.action}`
+            } : {
+              label: 'Ask AI about this ↗',
+              prompt: `Help me action this Notion task: "${ni.title}". Summary: ${ni.summary}. Action needed: ${ni.action}`
+            }
+          };
+          STATE.items.push(item);
+          newItems.push(item);
+          added++;
+        }
+      });
+
+      if (added > 0) {
+        saveState(); render(); counts();
+        logSync(`✓ Notion: ${added} new item${added !== 1 ? 's' : ''} added`, 'ok');
+        showNewBanner(added, newItems);
+        if (manual) toast(`Notion scan: ${added} new item${added !== 1 ? 's' : ''} added`);
+      } else {
+        logSync('✓ Notion: board up to date', 'ok');
+        if (manual) toast('Notion scan complete — board up to date');
+      }
+    }
+  } catch(e) {
+    logSync('Notion scan error: ' + (e.message||'').slice(0,50), 'warn');
+    if (manual) toast('Notion scan failed: ' + (e.message||'').slice(0,40));
+  }
+  notionSyncRunning = false;
 }
 
 // ── AUTO-SYNC ENGINE (runs every 15 minutes automatically) ──────────────────
@@ -1355,6 +1520,10 @@ async function startSync(manual=false) {
   document.getElementById('slbl').textContent = 'Synced ' + n12();
   btn.disabled = false; btn.textContent = 'Scan Now';
   isSyncRunning = false;
+
+  // Also run Notion sync as part of every scan cycle
+  startNotionSync(false);
+
   scheduleNextSync();
 }
 
@@ -1366,6 +1535,7 @@ nextSyncAt = Date.now() + SYNC_INTERVAL;
 countdownTimer = setInterval(updateCountdown, 1000);
 updateCountdown();
 setTimeout(() => startSync(false), 30000);
+setTimeout(() => startNotionSync(false), 45000); // Notion scan 15s after Outlook scan
 
 // Re-scan if user returns to tab after >15 mins away
 document.addEventListener('visibilitychange', () => {
