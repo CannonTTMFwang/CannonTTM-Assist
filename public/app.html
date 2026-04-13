@@ -409,7 +409,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
   <div class="hdr-div"></div>
   <div class="hdr-tag">7021 HOLLYWOOD BLVD · COMMAND CENTER</div>
   <div class="hdr-r">
-    <div class="sync-status-bar">
+    <div class="sync-status-bar" id="ms-auth-indicator">
       <div class="ldot on" id="ldot"></div>
       <span id="slbl">Live</span>
       <div class="countdown-ring" title="Next auto-scan">
@@ -695,7 +695,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v12',UK='hg-user-v4';
+const SK='hg-v13',UK='hg-user-v4';
 const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
 const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
@@ -1960,62 +1960,68 @@ async function loadInbox(force=false) {
   if (btn) { btn.classList.remove('spin'); btn.disabled = false; }
 }
 
-// Direct inbox load — calls the server's Outlook connector properly
+// Direct inbox load — calls /api/emails on the server (Microsoft Graph)
 async function loadInboxDirect() {
   document.getElementById('inbox-status').textContent = 'Fetching from Outlook...';
   try {
-    const resp = await fetch(API_BASE, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        max_tokens: 6000,
-        _connectors: ['outlook'],
-        system: 'You are an Outlook search assistant. Call the Outlook email search tool immediately. Return the raw email list as JSON only.',
-        messages: [{
-          role: 'user',
-          content: `Search Outlook inbox for all emails from the last 21 days. Return a JSON array of email objects. Each object must have exactly these fields:
-{
-  "id": "message id",
-  "uri": "mail:///messages/...",
-  "conversationId": "conversation id",
-  "subject": "subject line",
-  "sender": "display name <email@domain.com>",
-  "senderEmail": "email@domain.com",
-  "receivedDateTime": "ISO timestamp",
-  "isRead": true/false,
-  "hasAttachments": true/false,
-  "importance": "normal/high/low",
-  "summary": "1 sentence preview of email content"
-}
+    // First check if MS OAuth is connected
+    const statusResp = await fetch('/api/auth-status');
+    const status = await statusResp.json();
 
-Return ONLY the JSON array. No explanation, no markdown fences.`
-        }]
-      })
-    });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error.message);
-
-    const txt = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-    const match = txt.match(/\[[\s\S]*\]/);
-    if (match) {
-      try {
-        const emails = JSON.parse(match[0]);
-        INBOX.rawEmails = emails;
-        INBOX.threads = groupIntoThreads(emails);
-        INBOX.loaded = true;
-        renderThreadList();
-        updateInboxBadge();
-        document.getElementById('inbox-status').textContent = `${INBOX.threads.length} threads · ${emails.length} emails`;
-        return;
-      } catch(pe) { /* fall through to backup */ }
+    if (!status.ms_connected) {
+      document.getElementById('thread-list').innerHTML = `
+        <div style="padding:24px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:12px;">📧</div>
+          <div style="color:var(--tx);font-weight:500;margin-bottom:8px;">Connect Microsoft 365</div>
+          <div style="color:var(--t3);font-size:12px;margin-bottom:16px;">Sign in once to pull live Outlook emails</div>
+          <a href="/auth/login" style="display:inline-block;padding:8px 18px;background:var(--gold);color:#08080a;border-radius:6px;font-weight:600;text-decoration:none;font-size:12px;">Connect Outlook →</a>
+        </div>`;
+      document.getElementById('inbox-status').textContent = 'Not connected';
+      INBOX.loading = false;
+      const b = document.getElementById('inbox-refresh-btn');
+      if (b) { b.classList.remove('spin'); b.disabled = false; }
+      return;
     }
 
-    // If no JSON found, show what we got from the action board scan data
-    loadInboxFromActionBoardData();
+    // Fetch live emails from Microsoft Graph via server
+    const resp = await fetch('/api/emails?limit=50&folder=inbox');
+    if (!resp.ok) {
+      if (resp.status === 401) {
+        document.getElementById('thread-list').innerHTML = `
+          <div style="padding:24px;text-align:center;">
+            <div style="color:var(--amber);font-size:12px;margin-bottom:12px;">Session expired — please reconnect</div>
+            <a href="/auth/login" style="display:inline-block;padding:8px 18px;background:var(--gold);color:#08080a;border-radius:6px;font-weight:600;text-decoration:none;font-size:12px;">Reconnect Outlook →</a>
+          </div>`;
+        document.getElementById('inbox-status').textContent = 'Session expired';
+        INBOX.loading = false;
+        const b = document.getElementById('inbox-refresh-btn');
+        if (b) { b.classList.remove('spin'); b.disabled = false; }
+        return;
+      }
+      throw new Error('HTTP ' + resp.status);
+    }
+
+    const data = await resp.json();
+    if (data.error) throw new Error(JSON.stringify(data.error));
+
+    const emails = (data.emails || []).map(m => ({
+      ...m,
+      uri: m.id,
+      sender: m.sender || (m.senderName + ' <' + m.senderEmail + '>'),
+    }));
+
+    INBOX.rawEmails = emails;
+    INBOX.threads = groupIntoThreads(emails);
+    INBOX.loaded = true;
+    renderThreadList();
+    updateInboxBadge();
+    document.getElementById('inbox-status').textContent =
+      INBOX.threads.length + ' threads · ' + emails.length + ' emails · live';
+    document.getElementById('inbox-load-more').style.display = 'block';
 
   } catch(e) {
     console.error('loadInboxDirect error:', e);
+    document.getElementById('inbox-status').textContent = 'Error — showing cached data';
     loadInboxFromActionBoardData();
   }
 }
@@ -2203,35 +2209,39 @@ async function loadEmailBodyById(msg, msgElId) {
   if (!bodyEl) return;
   if (bodyEl.dataset.loaded) return;
 
-  // If we have a URI, fetch full content via the read_resource approach
-  if (msg.uri) {
+  // Use Graph API endpoint to fetch full email body
+  if (msg.id) {
     try {
-      const resp = await fetch(API_BASE, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          max_tokens: 2000,
-          _connectors: ['outlook'],
-          system: 'You are an Outlook email reader. Read the email at the given URI and return the clean text body only — no HTML tags, no signatures, just the main message content. Keep it readable.',
-          messages: [{role:'user', content:'Read this email and return only the clean message body (no HTML, no signatures, no quoted previous messages): ' + msg.uri}]
-        })
-      });
+      const resp = await fetch('/api/email/' + encodeURIComponent(msg.id));
       if (resp.ok) {
         const data = await resp.json();
-        if (!data.error) {
-          const txt = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
-          if (txt && txt.length > 10) {
-            bodyEl.innerHTML = formatEmailBody(txt);
+        if (data.body) {
+          // Strip HTML if it's HTML content
+          let bodyText = data.body;
+          if (data.bodyType === 'html') {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = bodyText;
+            // Remove style/script tags
+            tmp.querySelectorAll('style,script,head').forEach(el => el.remove());
+            bodyText = tmp.innerText || tmp.textContent || '';
+          }
+          // Clean up excessive whitespace
+          bodyText = bodyText.replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim();
+          if (bodyText.length > 20) {
+            bodyEl.innerHTML = formatEmailBody(bodyText);
             bodyEl.dataset.loaded = '1';
             return;
           }
         }
       }
-    } catch(e) { /* fallback to summary */ }
+    } catch(e) { console.log('Body fetch error:', e.message); }
   }
 
   // Fallback: show summary
-  bodyEl.innerHTML = formatEmailBody(msg.summary || '(Email body not available — click to open in Outlook)');
+  bodyEl.innerHTML = formatEmailBody(msg.summary || '(Preview not available — open in Outlook for full email)');
+  if (msg.webLink) {
+    bodyEl.innerHTML += '<div style="margin-top:10px;"><a href="' + msg.webLink + '" target="_blank" style="color:var(--blue);font-size:11px;font-family:DM Mono,monospace;">Open in Outlook ↗</a></div>';
+  }
   bodyEl.dataset.loaded = '1';
 }
 
@@ -2253,9 +2263,30 @@ function addActionFromEmail(subject, preview) {
   sq(`Create a new action board item from this email: Subject: "${subject}" — ${preview}. Determine the appropriate urgency, category, and what action Frank needs to take.`);
 }
 
-function loadMoreEmails() {
+async function loadMoreEmails() {
   INBOX.offset += INBOX.pageSize;
-  loadInboxDirect();
+  const status = document.getElementById('inbox-status');
+  if (status) status.textContent = 'Loading more...';
+  try {
+    const resp = await fetch(`/api/emails?limit=${INBOX.pageSize}&skip=${INBOX.offset}&folder=inbox`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const newEmails = (data.emails || []).map(m => ({
+      ...m,
+      uri: m.id,
+      sender: m.sender || `${m.senderName} <${m.senderEmail}>`,
+    }));
+    INBOX.rawEmails = [...INBOX.rawEmails, ...newEmails];
+    INBOX.threads = groupIntoThreads(INBOX.rawEmails);
+    renderThreadList();
+    updateInboxBadge();
+    if (status) status.textContent = `${INBOX.threads.length} threads · ${INBOX.rawEmails.length} emails · live`;
+    if (newEmails.length < INBOX.pageSize) {
+      document.getElementById('inbox-load-more').style.display = 'none';
+    }
+  } catch(e) {
+    if (status) status.textContent = 'Error loading more: ' + e.message.slice(0,40);
+  }
 }
 
 function escHtml(s) {
@@ -2620,6 +2651,26 @@ function slackAddToBoard(text, sender) {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadState(); initUser(); render(); counts();
+
+// Check Microsoft 365 auth status on load
+(async () => {
+  try {
+    const r = await fetch('/api/auth-status');
+    const s = await r.json();
+    if (!s.ms_connected) {
+      // Show a subtle connect banner in header
+      const ind = document.getElementById('ms-auth-indicator');
+      if (ind) {
+        const banner = document.createElement('div');
+        banner.style.cssText = 'font-size:10px;font-family:DM Mono,monospace;padding:3px 8px;border-radius:4px;background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.3);color:var(--gold);cursor:pointer;';
+        banner.innerHTML = '⚠ Outlook not connected';
+        banner.title = 'Click to connect Microsoft 365';
+        banner.onclick = () => window.open('/auth/login', '_blank');
+        ind.insertBefore(banner, ind.firstChild);
+      }
+    }
+  } catch(e) { /* server may be starting up */ }
+})();
 
 // Start countdown, first auto-scan after 30s (lets page fully load)
 nextSyncAt = Date.now() + SYNC_INTERVAL;
