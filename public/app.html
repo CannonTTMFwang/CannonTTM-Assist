@@ -695,7 +695,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v10',UK='hg-user-v4';
+const SK='hg-v11',UK='hg-user-v4';
 const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
 const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
@@ -1103,7 +1103,12 @@ async function runAgent(userMsg){
       data = await resp.json();
     } catch(fetchErr) {
       rmTyping();
-      addMsg('ai', '**Error:** ' + fetchErr.message);
+      const errMsg = fetchErr.message || 'Unknown error';
+      if (errMsg.toLowerCase().includes('overloaded') || errMsg.includes('529')) {
+        addMsg('ai', '**API is busy right now.** The Anthropic API is experiencing high load. Please wait 30 seconds and try again.');
+      } else {
+        addMsg('ai', '**Error:** ' + errMsg);
+      }
       isBusy = false; document.getElementById('sbtn').disabled = false; return;
     }
     rmTyping();
@@ -1332,34 +1337,77 @@ async function feedToolResult(toolUseId, result, prevContent){
 // Automatically use the current host — works on Render, local, or any server.
 const API_BASE = window.location.origin + '/api/claude';
 
-async function callClaude(prompt, system, connectors=[]) {
+// sleep helper
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+async function callClaude(prompt, system, connectors=[], retries=2) {
   const body = {
     max_tokens: 800,
     system,
     messages: [{ role: 'user', content: prompt }],
     _connectors: connectors
   };
-  const r = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if (!r.ok) {
-    const errBody = await r.json().catch(() => ({}));
-    const msg = errBody?.error?.message || 'HTTP ' + r.status;
-    // If MCP auth error, strip connectors and retry without them
-    if (msg.includes('Authentication error') || msg.includes('authorization token')) {
-      const body2 = { max_tokens: 800, system, messages: [{ role: 'user', content: prompt }] };
-      const r2 = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body2) });
-      const d2 = await r2.json();
-      if (d2.error) throw new Error(d2.error.message);
-      return (d2.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const r = await fetch(API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    // 529 Overloaded — wait and retry with exponential backoff
+    if (r.status === 529) {
+      if (attempt < retries) {
+        const wait = 8000 * Math.pow(2, attempt); // 8s, 16s
+        logSync(`API busy — retrying in ${Math.round(wait/1000)}s...`, 'ok');
+        await sleep(wait);
+        continue;
+      }
+      throw new Error('Overloaded — API is busy, try again in a minute');
     }
-    throw new Error(msg);
+
+    if (!r.ok) {
+      const errBody = await r.json().catch(() => ({}));
+      const msg = errBody?.error?.message || 'HTTP ' + r.status;
+
+      // 529 in error body
+      if (errBody?.error?.type === 'overloaded_error' || msg.toLowerCase().includes('overloaded')) {
+        if (attempt < retries) {
+          const wait = 8000 * Math.pow(2, attempt);
+          logSync(`API busy — retrying in ${Math.round(wait/1000)}s...`, 'ok');
+          await sleep(wait);
+          continue;
+        }
+        throw new Error('Overloaded — API is busy, try again in a minute');
+      }
+
+      // MCP auth error — strip connectors and retry once
+      if (msg.includes('Authentication error') || msg.includes('authorization token')) {
+        const body2 = { max_tokens: 800, system, messages: [{ role: 'user', content: prompt }] };
+        const r2 = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body2) });
+        const d2 = await r2.json();
+        if (d2.error) throw new Error(d2.error.message);
+        return (d2.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+      }
+
+      throw new Error(msg);
+    }
+
+    const d = await r.json();
+
+    // Check for overloaded in response body
+    if (d.error?.type === 'overloaded_error' || (d.error?.message||'').toLowerCase().includes('overloaded')) {
+      if (attempt < retries) {
+        const wait = 8000 * Math.pow(2, attempt);
+        logSync(`API busy — retrying in ${Math.round(wait/1000)}s...`, 'ok');
+        await sleep(wait);
+        continue;
+      }
+      throw new Error('Overloaded — API is busy, try again in a minute');
+    }
+
+    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+    return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
   }
-  const d = await r.json();
-  if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
-  return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
 }
 
 async function doOutlookSearch(input){
@@ -1626,8 +1674,14 @@ Return a JSON array. Each item: {"title":"concise title","summary":"2 sentence s
       }
     }
   } catch(e) {
-    logSync('Notion scan error: ' + (e.message||'').slice(0,50), 'warn');
-    if (manual) toast('Notion scan failed: ' + (e.message||'').slice(0,40));
+    const msg = e.message || '';
+    if (msg.toLowerCase().includes('overloaded') || msg.includes('529')) {
+      logSync('Notion: API busy — will retry next cycle', 'ok');
+      if (manual) toast('API is busy — Notion scan will retry automatically');
+    } else {
+      logSync('Notion: ' + msg.slice(0,50), 'warn');
+      if (manual) toast('Notion scan failed: ' + msg.slice(0,40));
+    }
   }
   notionSyncRunning = false;
 }
@@ -1760,9 +1814,14 @@ async function startSync(manual=false) {
       }
     }
   } catch(e) {
-    const msg = e.message||'Unknown error';
-    logSync('✗ ' + msg.slice(0,60), 'warn');
-    if (manual) toast('Scan failed: ' + msg.slice(0,50));
+    const msg = e.message || 'Unknown error';
+    if (msg.toLowerCase().includes('overloaded') || msg.includes('529')) {
+      logSync('API busy — will retry next cycle', 'ok');
+      if (manual) toast('API is busy — scan will retry automatically');
+    } else {
+      logSync('✗ ' + msg.slice(0,60), 'warn');
+      if (manual) toast('Scan failed: ' + msg.slice(0,50));
+    }
   }
 
   document.getElementById('ldot').className = 'ldot on';
@@ -1770,9 +1829,8 @@ async function startSync(manual=false) {
   btn.disabled = false; btn.textContent = 'Scan Now';
   isSyncRunning = false;
 
-  // Also run Notion + Slack syncs as part of every scan cycle
-  startNotionSync(false);
-  if (SLACK.loaded) loadSlack(false); // refresh if already open
+  // Slack refresh if already open (lightweight — no extra API calls)
+  if (SLACK.loaded) setTimeout(() => loadSlack(false), 3000);
 
   scheduleNextSync();
 }
@@ -2557,8 +2615,13 @@ loadState(); initUser(); render(); counts();
 nextSyncAt = Date.now() + SYNC_INTERVAL;
 countdownTimer = setInterval(updateCountdown, 1000);
 updateCountdown();
-setTimeout(() => startSync(false), 30000);
-setTimeout(() => startNotionSync(false), 45000); // Notion scan 15s after Outlook scan
+// Stagger scans to avoid API overload:
+// Outlook: fires 60s after load (page settle time increased)
+// Notion: fires 5 minutes after load (well after Outlook completes)
+// Both then run on independent 20-minute cycles
+setTimeout(() => startSync(false), 60000);
+setTimeout(() => startNotionSync(false), 5 * 60 * 1000);
+setInterval(() => startNotionSync(false), 20 * 60 * 1000); // Notion every 20 min
 
 // Re-scan if user returns to tab after >15 mins away
 document.addEventListener('visibilitychange', () => {
