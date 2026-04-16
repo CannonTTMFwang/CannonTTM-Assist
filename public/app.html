@@ -475,6 +475,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
     <div class="ni" onclick="switchView('inbox',document.getElementById('vt-inbox'))"><div class="nd" style="background:var(--blue)"></div>Open inbox</div>
     <div class="ni" onclick="switchView('slack',document.getElementById('vt-slack'))"><div class="nd" style="background:var(--green)"></div>Slack board</div>
     <div class="ni" onclick="openAddModal()"><div class="nd" style="background:var(--t3)"></div>Add item manually</div>
+    <div class="ni" onclick="resetEmailScan()" style="color:var(--t3);font-size:10px;"><div class="nd" style="background:var(--t3)"></div>Reset scan history</div>
   </div>
 </aside>
 
@@ -696,7 +697,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v16',UK='hg-user-v4';
+const SK='hg-v17',UK='hg-user-v4';
 const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
 const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
@@ -817,11 +818,24 @@ let chatHistory=[], pendingApprovals={};
 
 // ── STORAGE ───────────────────────────────────────────────────────────────────
 function loadState(){
-  try{const r=localStorage.getItem(SK);STATE=r?JSON.parse(r):{items:JSON.parse(JSON.stringify(DEFAULTS)),nextId:10,lastSync:null};}
-  catch(e){STATE={items:JSON.parse(JSON.stringify(DEFAULTS)),nextId:10,lastSync:null};}
-  currentUser=localStorage.getItem(UK)||'Frank Wang';
+  const d=localStorage.getItem(SK);
+  if(d){
+    try{
+      const p=JSON.parse(d);
+      STATE={...DEFAULTS,...p};
+      STATE.items=(p.items||[]).map(x=>({...{notes:[],status:'open',section:'Internal / Routine',addedBy:'',addedTs:'',cardAction:null},...x}));
+      // Restore processedEmailIds Set from serialized array
+      STATE.processedEmailIds = new Set(p.processedEmailIdsList || []);
+    }catch(e){}
+  } else {
+    STATE.processedEmailIds = new Set();
+  }
 }
-function saveState(){localStorage.setItem(SK,JSON.stringify(STATE));localStorage.setItem('hg-p6',Date.now().toString());}
+function saveState(){
+  if (STATE.processedEmailIds) STATE.processedEmailIdsList = Array.from(STATE.processedEmailIds);
+  localStorage.setItem(SK,JSON.stringify(STATE));
+  localStorage.setItem('hg-p6',Date.now().toString());
+}
 window.addEventListener('storage',e=>{if(e.key==='hg-p6'){loadState();render();counts();toast('Updated by team member');}});
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -1688,7 +1702,7 @@ Return a JSON array. Each item: {"title":"concise title","summary":"2 sentence s
 }
 
 // ── AUTO-SYNC ENGINE (runs every 15 minutes automatically) ──────────────────
-const SYNC_INTERVAL = 15 * 60 * 1000;
+const SYNC_INTERVAL = 5 * 60 * 1000;  // Scan every 5 minutes
 let syncTimer = null, countdownTimer = null, nextSyncAt = null;
 let syncLog = [], isSyncRunning = false;
 
@@ -1750,78 +1764,141 @@ async function startSync(manual=false) {
   btn.disabled = true; btn.textContent = 'Scanning...';
   document.getElementById('ldot').className = 'ldot pulse';
   document.getElementById('slbl').textContent = 'Scanning...';
-  if (manual) toast('Scanning Outlook for new items...');
+  if (manual) toast('Scanning inbox...');
   logSync('Scanning Outlook...', 'ok');
 
   try {
-    const emailTxt = await callClaude(
-      'List actionable property management emails received in the last 24 hours from Outlook. For each provide: subject, sender, received time, and 2-sentence summary of what action is needed. Skip marketing emails, automated reports, and calendar notifications. Number each item.',
-      'You are a property management email triage assistant for Frank Wang at Hollywood Galaxy (7021 Hollywood Blvd, Los Angeles). Focus only on emails requiring action.',
+    // Pull ALL emails — no 24hr cap, no category filter, return everything
+    const emailJson = await callClaude(
+      'Search my Outlook inbox for all emails received in the last 7 days. Return ALL of them — do not filter anything out. Include automated reports, security alerts, vendor emails, marketing, everything. Return a JSON array where each object has: id (message id), conversationId, subject, sender (display name), senderEmail, receivedDateTime (ISO), isRead (bool), hasAttachments (bool), importance, bodyPreview (2-3 sentence preview of the actual email content). Sort newest first. Return ONLY the JSON array, no markdown.',
+      'You are an Outlook email retrieval assistant. Call the email search tool immediately and return ALL results as a JSON array.',
       ['outlook']
     );
 
-    if (!emailTxt || emailTxt.length < 40) {
-      logSync('No new actionable emails', 'ok');
-      if (manual) toast('Scan complete — nothing new');
-    } else {
+    const arrMatch = emailJson && emailJson.match(/\[[\s\S]*\]/);
+    if (!arrMatch) {
+      logSync('No emails returned from Outlook', 'ok');
+      if (manual) toast('Scan complete — nothing returned');
+      isSyncRunning = false;
+      document.getElementById('ldot').className = 'ldot on';
+      document.getElementById('slbl').textContent = 'Synced ' + n12();
+      btn.disabled = false; btn.textContent = 'Scan Now';
+      if (SLACK.loaded) setTimeout(() => loadSlack(false), 3000);
+      scheduleNextSync();
+      return;
+    }
+
+    const allEmails = JSON.parse(arrMatch[0]);
+    logSync('Pulled ' + allEmails.length + ' emails — triaging...', 'ok');
+
+    // Filter to only emails not yet processed
+    // Track processed email IDs in STATE to avoid re-adding
+    if (!STATE.processedEmailIds) STATE.processedEmailIds = new Set();
+    // Restore from saved state (Sets don't serialize)
+    if (STATE.processedEmailIdsList) {
+      STATE.processedEmailIds = new Set(STATE.processedEmailIdsList);
+    }
+
+    const newEmails = allEmails.filter(e => e.id && !STATE.processedEmailIds.has(e.id));
+
+    if (newEmails.length === 0) {
+      logSync('✓ All emails already catalogued — board up to date', 'ok');
+      if (manual) toast('Up to date — no new emails');
+      isSyncRunning = false;
+      document.getElementById('ldot').className = 'ldot on';
+      document.getElementById('slbl').textContent = 'Synced ' + n12();
+      btn.disabled = false; btn.textContent = 'Scan Now';
+      if (SLACK.loaded) setTimeout(() => loadSlack(false), 3000);
+      scheduleNextSync();
+      return;
+    }
+
+    logSync('Found ' + newEmails.length + ' new emails — creating action items...', 'ok');
+
+    // Mark all fetched emails as processed immediately (even if triage fails)
+    allEmails.forEach(e => { if (e.id) STATE.processedEmailIds.add(e.id); });
+    STATE.processedEmailIdsList = Array.from(STATE.processedEmailIds);
+
+    // Triage ALL new emails — no cap, no filter
+    // Process in batches of 15 to stay within token limits
+    const BATCH = 15;
+    let totalAdded = 0;
+    const allNewItems = [];
+
+    for (let i = 0; i < newEmails.length; i += BATCH) {
+      const batch = newEmails.slice(i, i + BATCH);
+      const emailList = batch.map((e, idx) =>
+        `${idx+1}. FROM: ${e.sender} (${e.senderEmail||''})\n   SUBJECT: ${e.subject}\n   DATE: ${e.receivedDateTime}\n   PREVIEW: ${e.bodyPreview||''}`
+      ).join('\n\n');
+
       const structured = await callClaude(
-        'Triage these property management emails for Frank Wang at Hollywood Galaxy:\n\n' + emailTxt + '\n\nReturn a JSON array of action items. Each item: {"title":"concise title","summary":"2 sentence summary","action":"what Frank must do","urgency":"critical|high|normal|low","category":"safety|deal|parking|leasing|vendor|internal","source":"sender name + date","section":"7021 Hollywood Blvd — Safety|HHLA — Active Deal|Hollywood Galaxy — Parking|Hollywood Blvd — Tenant / Leasing|Vendor / Maintenance|Internal / Routine"}. Filter out marketing, automated notifications. Max 8 items. Return ONLY valid JSON array, nothing else.',
-        'Return ONLY a valid JSON array. No markdown. No explanation.',
+        'Triage ALL of these emails for Frank Wang, Assistant Property Manager at Hollywood Galaxy (7021 Hollywood Blvd, LA). Create an action item for EVERY email — do not skip any. Even routine or automated emails get logged.\n\n' + emailList + '\n\nReturn a JSON array. One object per email. Each: {"title":"concise title max 8 words","summary":"1-2 sentence summary of what the email says","action":"what Frank needs to do, or MONITOR if no action required","urgency":"critical|high|normal|low","category":"safety|deal|parking|leasing|vendor|internal","source":"[sender name] · [date like Apr 16]","section":"7021 Hollywood Blvd — Safety|HHLA — Active Deal|Hollywood Galaxy — Parking|Hollywood Blvd — Tenant / Leasing|Vendor / Maintenance|Internal / Routine","emailId":"[the id field]"}. Return ONLY the JSON array.',
+        'Return ONLY a valid JSON array. No markdown. No explanation. Include an item for every single email.',
         []
       );
 
       const match = structured && structured.match(/\[[\s\S]*\]/);
-      if (match) {
-        let added = 0;
-        const newItems = [];
-        JSON.parse(match[0]).forEach(ni => {
-          if (!ni.title || ni.title.length < 5) return;
-          const titleKey = ni.title.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim().slice(0,28);
-          const isDupe = STATE.items.some(ex => {
-            const exKey = ex.title.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim().slice(0,28);
-            return exKey === titleKey || exKey.includes(titleKey.slice(0,18)) || titleKey.includes(exKey.slice(0,18));
-          });
-          if (!isDupe) {
-            const item = {
-              id: STATE.nextId++,
-              urgency: ni.urgency||'normal', category: ni.category||'internal',
-              title: ni.title, summary: ni.summary||'', action: ni.action||'',
-              source: ni.source||('Auto-scan · '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})),
-              status: 'open', notes: [],
-              section: ni.section||'Internal / Routine',
-              addedBy: 'Auto-scan',
-              addedTs: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
-              cardAction: { label:'Ask AI about this ↗', prompt:`Help me action this: "${ni.title}". Summary: ${ni.summary}. Action needed: ${ni.action}` }
-            };
-            STATE.items.push(item);
-            newItems.push(item);
-            added++;
-          }
-        });
+      if (!match) continue;
+
+      let batchAdded = 0;
+      JSON.parse(match[0]).forEach(ni => {
+        if (!ni.title || ni.title.length < 3) return;
+        // Dedup: only check exact email ID match, not fuzzy title
+        const alreadyHasEmailId = ni.emailId && STATE.items.some(ex => ex.emailId === ni.emailId);
+        if (alreadyHasEmailId) return;
+        const item = {
+          id: STATE.nextId++,
+          emailId: ni.emailId || null,
+          urgency: ni.urgency || 'normal',
+          category: ni.category || 'internal',
+          title: ni.title,
+          summary: ni.summary || '',
+          action: ni.action || '',
+          source: ni.source || ('Auto-scan · ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})),
+          status: 'open',
+          notes: [],
+          section: ni.section || 'Internal / Routine',
+          addedBy: 'Email Scan',
+          addedTs: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+          cardAction: { label: 'Ask AI about this ↗', prompt: `Help me action this email: "${ni.title}". Summary: ${ni.summary}. Action needed: ${ni.action}` }
+        };
+        STATE.items.push(item);
+        allNewItems.push(item);
+        batchAdded++;
+        totalAdded++;
+      });
+
+      if (batchAdded > 0) {
+        logSync('✓ Batch ' + (Math.floor(i/BATCH)+1) + ': ' + batchAdded + ' items added', 'ok');
         STATE.lastSync = new Date().toISOString();
         saveState(); render(); counts();
-        if (added > 0) {
-          logSync('✓ ' + added + ' new item' + (added!==1?'s':'') + ' added', 'ok');
-          showNewBanner(added, newItems);
-          if (!manual) toast('Auto-scan: ' + added + ' new item' + (added!==1?'s':'') + ' added');
-          else toast('Scan complete — ' + added + ' new item' + (added!==1?'s':'') + ' added');
-        } else {
-          logSync('✓ Scan complete — board up to date', 'ok');
-          if (manual) toast('Up to date — no new items');
-        }
-      } else {
-        logSync('✓ Scan complete', 'ok');
-        if (manual) toast('Scan complete');
       }
+
+      // Small delay between batches to avoid overloading the API
+      if (i + BATCH < newEmails.length) await sleep(2000);
     }
+
+    STATE.lastSync = new Date().toISOString();
+    saveState(); render(); counts();
+
+    if (totalAdded > 0) {
+      logSync('✓ ' + totalAdded + ' new item' + (totalAdded!==1?'s':'') + ' added from ' + newEmails.length + ' emails', 'ok');
+      showNewBanner(totalAdded, allNewItems);
+      if (manual) toast('Scan complete — ' + totalAdded + ' new item' + (totalAdded!==1?'s':'') + ' added');
+      else toast('Auto-scan: ' + totalAdded + ' new item' + (totalAdded!==1?'s':'') + ' added');
+    } else {
+      logSync('✓ ' + newEmails.length + ' emails processed — board up to date', 'ok');
+      if (manual) toast('Scan complete — board up to date');
+    }
+
   } catch(e) {
     const msg = e.message || 'Unknown error';
     if (msg.toLowerCase().includes('overloaded') || msg.includes('529')) {
       logSync('API busy — will retry next cycle', 'ok');
-      if (manual) toast('API is busy — scan will retry automatically');
+      if (manual) toast('API is busy — will retry automatically');
     } else {
-      logSync('✗ ' + msg.slice(0,60), 'warn');
-      if (manual) toast('Scan failed: ' + msg.slice(0,50));
+      logSync('✗ ' + msg.slice(0, 60), 'warn');
+      if (manual) toast('Scan failed: ' + msg.slice(0, 50));
     }
   }
 
@@ -1830,7 +1907,7 @@ async function startSync(manual=false) {
   btn.disabled = false; btn.textContent = 'Scan Now';
   isSyncRunning = false;
 
-  // Slack refresh if already open (lightweight — no extra API calls)
+  // Slack refresh if already open
   if (SLACK.loaded) setTimeout(() => loadSlack(false), 3000);
 
   scheduleNextSync();
@@ -2591,6 +2668,15 @@ async function sessionSync(silent=false) {
   }
 }
 
+// ── SCAN HISTORY RESET ───────────────────────────────────────────────────────
+function resetEmailScan() {
+  if (!confirm('Clear email scan history? This will re-scan all emails from the last 7 days and re-add them as action items on the next scan.')) return;
+  STATE.processedEmailIds = new Set();
+  STATE.processedEmailIdsList = [];
+  saveState();
+  toast('Scan history cleared — next scan will re-process all recent emails');
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadState(); initUser(); render(); counts();
 
@@ -2603,7 +2689,7 @@ updateCountdown();
 // Outlook: fires 60s after load (page settle time increased)
 // Notion: fires 5 minutes after load (well after Outlook completes)
 // Both then run on independent 20-minute cycles
-setTimeout(() => startSync(false), 60000);
+setTimeout(() => startSync(false), 15000);  // First scan 15s after load
 setTimeout(() => startNotionSync(false), 5 * 60 * 1000);
 setInterval(() => startNotionSync(false), 20 * 60 * 1000); // Notion every 20 min
 
