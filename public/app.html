@@ -409,7 +409,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
   <div class="hdr-div"></div>
   <div class="hdr-tag">7021 HOLLYWOOD BLVD · COMMAND CENTER</div>
   <div class="hdr-r">
-    <div class="sync-status-bar" id="ms-auth-indicator">
+    <div class="sync-status-bar">
       <div class="ldot on" id="ldot"></div>
       <span id="slbl">Live</span>
       <div class="countdown-ring" title="Next auto-scan">
@@ -471,6 +471,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
     <div class="ni" onclick="sq('Draft a weekly status update for Tyler Mateen covering all open action items at Hollywood Galaxy')"><div class="nd" style="background:var(--t3)"></div>Draft weekly update</div>
     <div class="ni" onclick="sq('What are my most critical open items and what should I do first today?')"><div class="nd" style="background:var(--t3)"></div>Prioritize my day</div>
     <div class="ni" onclick="startNotionSync(true)"><div class="nd" style="background:var(--purple)"></div>Scan Notion tasks</div>
+    <div class="ni" onclick="sessionSync(false)" style="border:1px solid rgba(212,168,67,0.3);"><div class="nd" style="background:var(--gold)"></div><span style="color:var(--gold);font-weight:500;">Push live data to Render</span></div>
     <div class="ni" onclick="switchView('inbox',document.getElementById('vt-inbox'))"><div class="nd" style="background:var(--blue)"></div>Open inbox</div>
     <div class="ni" onclick="switchView('slack',document.getElementById('vt-slack'))"><div class="nd" style="background:var(--green)"></div>Slack board</div>
     <div class="ni" onclick="openAddModal()"><div class="nd" style="background:var(--t3)"></div>Add item manually</div>
@@ -695,7 +696,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v13',UK='hg-user-v4';
+const SK='hg-v15',UK='hg-user-v4';
 const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
 const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
@@ -1960,68 +1961,29 @@ async function loadInbox(force=false) {
   if (btn) { btn.classList.remove('spin'); btn.disabled = false; }
 }
 
-// Direct inbox load — calls /api/emails on the server (Microsoft Graph)
+// Direct inbox load — pulls from /api/inbox (seeded via Claude.ai sync)
 async function loadInboxDirect() {
-  document.getElementById('inbox-status').textContent = 'Fetching from Outlook...';
+  document.getElementById('inbox-status').textContent = 'Loading...';
   try {
-    // First check if MS OAuth is connected
-    const statusResp = await fetch('/api/auth-status');
-    const status = await statusResp.json();
-
-    if (!status.ms_connected) {
-      document.getElementById('thread-list').innerHTML = `
-        <div style="padding:24px;text-align:center;">
-          <div style="font-size:28px;margin-bottom:12px;">📧</div>
-          <div style="color:var(--tx);font-weight:500;margin-bottom:8px;">Connect Microsoft 365</div>
-          <div style="color:var(--t3);font-size:12px;margin-bottom:16px;">Sign in once to pull live Outlook emails</div>
-          <a href="/auth/login" style="display:inline-block;padding:8px 18px;background:var(--gold);color:#08080a;border-radius:6px;font-weight:600;text-decoration:none;font-size:12px;">Connect Outlook →</a>
-        </div>`;
-      document.getElementById('inbox-status').textContent = 'Not connected';
-      INBOX.loading = false;
-      const b = document.getElementById('inbox-refresh-btn');
-      if (b) { b.classList.remove('spin'); b.disabled = false; }
-      return;
-    }
-
-    // Fetch live emails from Microsoft Graph via server
-    const resp = await fetch('/api/emails?limit=50&folder=inbox');
-    if (!resp.ok) {
-      if (resp.status === 401) {
-        document.getElementById('thread-list').innerHTML = `
-          <div style="padding:24px;text-align:center;">
-            <div style="color:var(--amber);font-size:12px;margin-bottom:12px;">Session expired — please reconnect</div>
-            <a href="/auth/login" style="display:inline-block;padding:8px 18px;background:var(--gold);color:#08080a;border-radius:6px;font-weight:600;text-decoration:none;font-size:12px;">Reconnect Outlook →</a>
-          </div>`;
-        document.getElementById('inbox-status').textContent = 'Session expired';
-        INBOX.loading = false;
-        const b = document.getElementById('inbox-refresh-btn');
-        if (b) { b.classList.remove('spin'); b.disabled = false; }
-        return;
-      }
-      throw new Error('HTTP ' + resp.status);
-    }
-
+    const resp = await fetch('/api/inbox');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-    if (data.error) throw new Error(JSON.stringify(data.error));
-
     const emails = (data.emails || []).map(m => ({
-      ...m,
-      uri: m.id,
+      ...m, uri: m.id,
       sender: m.sender || (m.senderName + ' <' + m.senderEmail + '>'),
     }));
-
+    if (emails.length === 0) throw new Error('no data yet');
     INBOX.rawEmails = emails;
     INBOX.threads = groupIntoThreads(emails);
     INBOX.loaded = true;
     renderThreadList();
     updateInboxBadge();
+    const ago = data.syncedAt ? ' · synced ' + relTime(new Date(data.syncedAt).getTime()/1000) : '';
     document.getElementById('inbox-status').textContent =
-      INBOX.threads.length + ' threads · ' + emails.length + ' emails · live';
-    document.getElementById('inbox-load-more').style.display = 'block';
-
+      INBOX.threads.length + ' threads · ' + emails.length + ' emails' + ago;
+    document.getElementById('inbox-load-more').style.display = 'none';
   } catch(e) {
-    console.error('loadInboxDirect error:', e);
-    document.getElementById('inbox-status').textContent = 'Error — showing cached data';
+    document.getElementById('inbox-status').textContent = 'Showing cached — sync this session to refresh';
     loadInboxFromActionBoardData();
   }
 }
@@ -2209,39 +2171,26 @@ async function loadEmailBodyById(msg, msgElId) {
   if (!bodyEl) return;
   if (bodyEl.dataset.loaded) return;
 
-  // Use Graph API endpoint to fetch full email body
-  if (msg.id) {
+  // Try to fetch full body via callClaude with outlook connector
+  if (msg.uri || msg.id) {
     try {
-      const resp = await fetch('/api/email/' + encodeURIComponent(msg.id));
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.body) {
-          // Strip HTML if it's HTML content
-          let bodyText = data.body;
-          if (data.bodyType === 'html') {
-            const tmp = document.createElement('div');
-            tmp.innerHTML = bodyText;
-            // Remove style/script tags
-            tmp.querySelectorAll('style,script,head').forEach(el => el.remove());
-            bodyText = tmp.innerText || tmp.textContent || '';
-          }
-          // Clean up excessive whitespace
-          bodyText = bodyText.replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim();
-          if (bodyText.length > 20) {
-            bodyEl.innerHTML = formatEmailBody(bodyText);
-            bodyEl.dataset.loaded = '1';
-            return;
-          }
-        }
+      const ref = msg.uri || msg.id;
+      const txt = await callClaude(
+        'Read this email and return only the clean plain-text body. No HTML tags, no quoted previous messages, no signatures. Just the main message content: ' + ref,
+        'You are an email reader. Return only the clean message body.',
+        ['outlook']
+      );
+      if (txt && txt.length > 20) {
+        bodyEl.innerHTML = formatEmailBody(txt);
+        bodyEl.dataset.loaded = '1';
+        return;
       }
-    } catch(e) { console.log('Body fetch error:', e.message); }
+    } catch(e) { /* fall through to summary */ }
   }
 
-  // Fallback: show summary
-  bodyEl.innerHTML = formatEmailBody(msg.summary || '(Preview not available — open in Outlook for full email)');
-  if (msg.webLink) {
-    bodyEl.innerHTML += '<div style="margin-top:10px;"><a href="' + msg.webLink + '" target="_blank" style="color:var(--blue);font-size:11px;font-family:DM Mono,monospace;">Open in Outlook ↗</a></div>';
-  }
+  // Fallback: show summary + link to Outlook
+  const link = msg.webLink ? '<div style="margin-top:10px;"><a href="' + msg.webLink + '" target="_blank" style="color:var(--blue);font-size:11px;font-family:DM Mono,monospace;">Open in Outlook ↗</a></div>' : '';
+  bodyEl.innerHTML = formatEmailBody(msg.summary || '(Preview not available)') + link;
   bodyEl.dataset.loaded = '1';
 }
 
@@ -2264,29 +2213,9 @@ function addActionFromEmail(subject, preview) {
 }
 
 async function loadMoreEmails() {
-  INBOX.offset += INBOX.pageSize;
-  const status = document.getElementById('inbox-status');
-  if (status) status.textContent = 'Loading more...';
-  try {
-    const resp = await fetch(`/api/emails?limit=${INBOX.pageSize}&skip=${INBOX.offset}&folder=inbox`);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const data = await resp.json();
-    const newEmails = (data.emails || []).map(m => ({
-      ...m,
-      uri: m.id,
-      sender: m.sender || `${m.senderName} <${m.senderEmail}>`,
-    }));
-    INBOX.rawEmails = [...INBOX.rawEmails, ...newEmails];
-    INBOX.threads = groupIntoThreads(INBOX.rawEmails);
-    renderThreadList();
-    updateInboxBadge();
-    if (status) status.textContent = `${INBOX.threads.length} threads · ${INBOX.rawEmails.length} emails · live`;
-    if (newEmails.length < INBOX.pageSize) {
-      document.getElementById('inbox-load-more').style.display = 'none';
-    }
-  } catch(e) {
-    if (status) status.textContent = 'Error loading more: ' + e.message.slice(0,40);
-  }
+  // More emails loaded by re-running loadInbox with a full refresh
+  INBOX.loaded = false;
+  loadInboxDirect();
 }
 
 function escHtml(s) {
@@ -2390,86 +2319,43 @@ function formatSlackBody(text) {
     .replace(/&lt;#([A-Z0-9]+)(?:\|([^&]*))?&gt;/g, (_, id, name) => `<span class="mention-tag">#${name||id}</span>`);
 }
 
-// Load Slack messages via the API proxy with slack connector
+// Load Slack messages from /api/slack-feed (seeded via Claude.ai sync)
 async function loadSlack(manual=false) {
   if (SLACK.loading) return;
   SLACK.loading = true;
   const btn = document.getElementById('slack-refresh-btn');
   if (btn) btn.textContent = '↻ Loading...';
-  document.getElementById('slack-status-text').textContent = 'Loading Slack...';
-  document.getElementById('slack-feed').innerHTML = '<div class="slack-loading">Fetching messages from Slack...</div>';
-
+  document.getElementById('slack-status-text').textContent = 'Loading...';
+  document.getElementById('slack-feed').innerHTML = '<div class="slack-loading">Fetching Slack data...</div>';
   try {
-    // Search for mentions + DMs in parallel
-    const [mentionsResp, dmsResp] = await Promise.all([
-      fetchSlackMessages('mentions'),
-      fetchSlackMessages('dms'),
-    ]);
-    const all = [...(mentionsResp||[]), ...(dmsResp||[])];
-    // Deduplicate by ts+channel
-    const seen = new Set();
-    SLACK.messages = all.filter(m => {
-      const key = (m.channel||'') + ':' + (m.ts||'');
-      if (seen.has(key)) return false;
-      seen.add(key); return true;
-    });
-    // Sort newest first
-    SLACK.messages.sort((a,b) => parseFloat(b.ts||0) - parseFloat(a.ts||0));
+    const resp = await fetch('/api/slack-feed');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const msgs = data.messages || [];
+    if (msgs.length === 0) throw new Error('no data yet');
+    SLACK.messages = msgs;
     SLACK.loaded = true;
     renderSlackFeed();
     updateSlackBadge();
     buildSlackChannelList();
-    const unread = SLACK.messages.filter(m=>m.unread).length;
+    const ago = data.syncedAt ? ' · synced ' + relTime(new Date(data.syncedAt).getTime()/1000) : '';
     document.getElementById('slack-status-text').textContent =
-      `${SLACK.messages.length} messages · ${unread} unread`;
-    if (manual) toast('Slack loaded — ' + SLACK.messages.length + ' messages');
+      msgs.length + ' messages' + ago;
+    if (manual) toast('Slack loaded — ' + msgs.length + ' messages');
   } catch(e) {
-    document.getElementById('slack-status-text').textContent = 'Error: ' + (e.message||'').slice(0,60);
-    document.getElementById('slack-feed').innerHTML = '<div class="slack-loading" style="color:var(--red);">Failed to load Slack. Check connector.</div>';
+    // Fall back to built-in data
+    SLACK.messages = [...buildFallbackMentions(), ...buildFallbackDMs()];
+    SLACK.loaded = true;
+    renderSlackFeed();
+    updateSlackBadge();
+    buildSlackChannelList();
+    document.getElementById('slack-status-text').textContent = 'Showing cached — sync this session to refresh';
   }
   SLACK.loading = false;
   if (btn) btn.textContent = '↻ Refresh';
 }
 
-// Call the API with slack connector — returns array of message objects
-async function fetchSlackMessages(type) {
-  const prompt = type === 'mentions'
-    ? 'Search Slack for all messages where @Frank (user ID U081RTKAYSC) is mentioned across all channels in the last 30 days. For each message return: sender_name, channel_name, channel_id, message_text, timestamp (Unix ts), is this a thread reply (yes/no). Sort newest first. Return as JSON array only.'
-    : 'Search Slack for all direct messages sent TO Frank Wang (user ID U081RTKAYSC) in the last 30 days. Include DMs from Whitney Donohue, Charity Dahlke, Jackson Foo, Jinnah Griffin, Trisha Christmas, Patricia Polillo and anyone else. For each message return: sender_name, channel_name (use DM with [name]), channel_id, message_text, timestamp (Unix ts). Sort newest first. Return as JSON array only.';
 
-  const resp = await fetch(API_BASE, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      max_tokens: 3000,
-      _connectors: ['slack'],
-      system: 'You are a Slack search assistant. Run the search immediately and return ONLY a valid JSON array. No markdown, no explanation.',
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  if (!resp.ok) throw new Error('HTTP ' + resp.status);
-  const data = await resp.json();
-  if (data.error) throw new Error(data.error.message);
-  const txt = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-  const match = txt.match(/\[[\s\S]*\]/);
-  if (!match) return type === 'mentions' ? buildFallbackMentions() : buildFallbackDMs();
-  try {
-    const msgs = JSON.parse(match[0]);
-    // Normalize fields
-    return msgs.map(m => ({
-      type: type === 'mentions' ? 'mention' : 'dm',
-      senderName: m.sender_name || m.from || m.senderName || 'Unknown',
-      channelName: m.channel_name || m.channel || m.channelName || 'Unknown',
-      channelId: m.channel_id || m.channelId || '',
-      text: m.message_text || m.text || m.content || '',
-      ts: String(m.timestamp || m.ts || Date.now()/1000),
-      isThread: !!(m.is_thread_reply || m.isThread),
-      unread: m.unread !== false,
-    }));
-  } catch(e) {
-    return type === 'mentions' ? buildFallbackMentions() : buildFallbackDMs();
-  }
-}
 
 // Fallback data from our live scan (Apr 2026)
 function buildFallbackMentions() {
@@ -2649,28 +2535,74 @@ function slackAddToBoard(text, sender) {
   sq(`Create a new action board item from this Slack message from ${sender}: "${text}". Determine urgency, category, and what Frank needs to do.`);
 }
 
+// ── SESSION SYNC ENGINE ──────────────────────────────────────────────────────
+// Runs in the Claude.ai session (which has valid MCP tokens).
+// Calls /api/sync on Render to push live Outlook + Slack data.
+const SYNC_ENDPOINT = 'https://cannonttm-assist.onrender.com/api/sync';
+const SYNC_SECRET_HDR = 'hg-sync-2026';
+
+async function sessionSync(silent=false) {
+  if (!silent) toast('Syncing live data to Render...');
+  document.getElementById('slbl').textContent = 'Syncing...';
+  try {
+    // Pull emails via /api/claude with outlook connector
+    const emailResp = await fetch(API_BASE, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        max_tokens: 4000,
+        _connectors: ['outlook'],
+        system: 'Return ONLY a valid JSON array of email objects. No markdown. No explanation.',
+        messages:[{role:'user',content:'List all emails from the last 14 days from my Outlook inbox. Return a JSON array where each object has: id, conversationId, subject, sender (name <email>), senderName, senderEmail, receivedDateTime (ISO), isRead (bool), hasAttachments (bool), importance, summary (1 sentence preview), webLink. Sort newest first. ONLY the JSON array.'}]
+      })
+    });
+    const emailData = await emailResp.json();
+    const emailTxt = (emailData.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const emailMatch = emailTxt.match(/\[[\s\S]*\]/);
+    const emails = emailMatch ? JSON.parse(emailMatch[0]) : [];
+
+    // Pull Slack mentions + DMs via /api/claude with slack connector
+    const slackResp = await fetch(API_BASE, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        max_tokens: 3000,
+        _connectors: ['slack'],
+        system: 'Return ONLY a valid JSON array. No markdown. No explanation.',
+        messages:[{role:'user',content:'Search Slack for: (1) all messages where @Frank (user U081RTKAYSC) is mentioned in any channel in the last 14 days, and (2) all direct messages sent to Frank in the last 14 days. Return a single JSON array where each object has: type ("mention" or "dm"), senderName, channelName, channelId, text, ts (unix timestamp string), unread (bool). Sort newest first. ONLY the JSON array.'}]
+      })
+    });
+    const slackData = await slackResp.json();
+    const slackTxt = (slackData.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const slackMatch = slackTxt.match(/\[[\s\S]*\]/);
+    const slack = slackMatch ? JSON.parse(slackMatch[0]) : [];
+
+    // Push to Render
+    const pushResp = await fetch(SYNC_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-sync-secret':SYNC_SECRET_HDR},
+      body: JSON.stringify({ emails, slack, syncedAt: new Date().toISOString() })
+    });
+    const pushData = await pushResp.json();
+
+    if (pushData.ok) {
+      document.getElementById('slbl').textContent = 'Synced ' + n12();
+      if (!silent) toast('✓ Synced — ' + (emails.length||0) + ' emails, ' + (slack.length||0) + ' Slack msgs pushed to Render');
+      logSync('✓ Session sync: ' + (emails.length||0) + ' emails · ' + (slack.length||0) + ' Slack', 'ok');
+      // Reload inbox/slack views if open
+      if (currentView === 'inbox') { INBOX.loaded=false; loadInboxDirect(); }
+      if (currentView === 'slack') { SLACK.loaded=false; loadSlack(false); }
+    } else {
+      throw new Error(JSON.stringify(pushData));
+    }
+  } catch(e) {
+    document.getElementById('slbl').textContent = 'Sync error';
+    logSync('Session sync error: ' + (e.message||'').slice(0,60), 'warn');
+    if (!silent) toast('Sync failed: ' + (e.message||'unknown').slice(0,50));
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadState(); initUser(); render(); counts();
 
-// Check Microsoft 365 auth status on load
-(async () => {
-  try {
-    const r = await fetch('/api/auth-status');
-    const s = await r.json();
-    if (!s.ms_connected) {
-      // Show a subtle connect banner in header
-      const ind = document.getElementById('ms-auth-indicator');
-      if (ind) {
-        const banner = document.createElement('div');
-        banner.style.cssText = 'font-size:10px;font-family:DM Mono,monospace;padding:3px 8px;border-radius:4px;background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.3);color:var(--gold);cursor:pointer;';
-        banner.innerHTML = '⚠ Outlook not connected';
-        banner.title = 'Click to connect Microsoft 365';
-        banner.onclick = () => window.open('/auth/login', '_blank');
-        ind.insertBefore(banner, ind.firstChild);
-      }
-    }
-  } catch(e) { /* server may be starting up */ }
-})();
 
 // Start countdown, first auto-scan after 30s (lets page fully load)
 nextSyncAt = Date.now() + SYNC_INTERVAL;
