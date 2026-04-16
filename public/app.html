@@ -181,7 +181,7 @@ body{
 .vtab .vtab-badge.show{display:block;}
 
 /* ── LAYOUT ── */
-.layout{display:flex;flex:1;overflow:hidden;height:0;}
+.layout{display:flex;flex:1;overflow:hidden;}
 
 /* ── SIDEBAR ── */
 .sb{
@@ -192,7 +192,7 @@ body{
   display:flex;flex-direction:column;
   overflow-y:auto;
   padding-bottom:12px;
-  order:2;
+  order:3;
   font-size:11.5px;
 }
 .ns{padding:10px 8px 3px;}
@@ -234,7 +234,7 @@ body{
 .ni.act .nc{background:var(--blue-bg);color:var(--blue);}
 
 /* ── MAIN ── */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;order:1;}
 .mscroll{flex:1;overflow-y:auto;padding:20px 22px;}
 
 /* ── BOARD HEADER ── */
@@ -496,8 +496,8 @@ body{
   flex-direction:column;
   border-right:1px solid var(--b1);
   background:var(--s1);
-  order:-2;
-  min-width:300px;
+  order:0;
+  min-width:280px;
 }
 .chdr{
   padding:12px 16px 10px;
@@ -654,7 +654,7 @@ body{
 
 
 /* ── INBOX PANEL ── */
-.inbox-wrap{display:flex;flex:1;overflow:hidden;order:0;}
+.inbox-wrap{display:flex;flex:1;overflow:hidden;order:1;}
 .inbox-list{
   width:var(--list-w);
   flex-shrink:0;
@@ -767,7 +767,7 @@ body{
 .inbox-status{padding:6px 14px;font-size:9.5px;font-family:'JetBrains Mono',monospace;color:var(--t3);border-top:1px solid var(--b1);flex-shrink:0;background:rgba(249,249,251,0.98);}
 
 /* ── SLACK BOARD ── */
-.slack-wrap{display:flex;flex:1;overflow:hidden;order:0;}
+.slack-wrap{display:flex;flex:1;overflow:hidden;order:1;}
 .slack-sidebar{width:200px;flex-shrink:0;background:rgba(255,255,255,0.96);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto;}
 .slack-sidebar-section{padding:10px 10px 4px;}
 .slack-sidebar-label{font-size:9px;font-family:'JetBrains Mono',monospace;letter-spacing:.10em;color:var(--t4);text-transform:uppercase;padding:0 6px;margin-bottom:4px;font-weight:600;}
@@ -917,8 +917,6 @@ body{
     <div id="auto-sync-next" style="margin-top:2px;"></div>
   </div>
 </aside>
-
-</div>
 
 
 <!-- INBOX PANEL (hidden by default) -->
@@ -1107,7 +1105,7 @@ body{
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v21',UK='hg-user-v4';
+const SK='hg-v22',UK='hg-user-v4';
 const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
 const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
