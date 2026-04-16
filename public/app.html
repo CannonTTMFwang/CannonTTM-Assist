@@ -697,7 +697,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v17',UK='hg-user-v4';
+const SK='hg-v18',UK='hg-user-v4';
 const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
 const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
@@ -807,10 +807,42 @@ const DEFAULTS=[
    action:'Schedule internal discussion with Jackson and Tyler on AirGarage before reconnecting with Stefaun.',
    source:'AirGarage Stefaun · Apr 7–8',status:'open',notes:[],
    section:'Hollywood Galaxy — Parking',addedBy:'Session Scan',addedTs:'Apr 8',
-   cardAction:{label:'Reply to AirGarage ↗',prompt:'Draft a reply to Stefaun Avakian at AirGarage (stefaun@airgarage.com) acknowledging we are still working through our internal alignment on the Hollywood Galaxy parking strategy. Express genuine interest in the Property Insights dashboard demo. Propose finding time in the next 2 weeks once we have had our internal sync. Keep it warm and professional. Subject: Re: AirGarage x Cannon - Hollywood Galaxy FollowUp'}}
+   cardAction:{label:'Reply to AirGarage ↗',prompt:'Draft a reply to Stefaun Avakian at AirGarage (stefaun@airgarage.com) acknowledging we are still working through our internal alignment on the Hollywood Galaxy parking strategy. Express genuine interest in the Property Insights dashboard demo. Propose finding time in the next 2 weeks once we have had our internal sync. Keep it warm and professional. Subject: Re: AirGarage x Cannon - Hollywood Galaxy FollowUp'}},
+
+  {id:10,urgency:'critical',category:'safety',
+   title:"URGENT: 7021 Hollywood Blvd — unsafe glass panel, boom lift required",
+   summary:"AAA Facility Services confirmed the glass panel at 7021 Hollywood Blvd cannot be removed without a 30ft boom lift. Tech inspected from rooftop and confirmed it is unsafe and poses a hazard. Frank followed up Apr 16 asking for next steps.",
+   action:"Arrange 30ft boom lift with AAA Facility Services and schedule panel removal and repair ASAP.",
+   source:"AAA Facility Services · Apr 16",status:'open',notes:[],
+   section:"7021 Hollywood Blvd — Safety",addedBy:"Email Scan",addedTs:"Apr 16",
+   cardAction:{label:"Follow up with AAA ↗",prompt:"Draft a follow-up email to AAA Facility Services (SoCalScheduling@aaafacilityservices.com) regarding the glass panel at 7021 Hollywood Blvd. Ask for a quote and timeline for arranging the 30ft boom lift for panel removal and repair. Reference SERVO-138628."}},
+
+  {id:11,urgency:'high',category:'leasing',
+   title:"HOPE Hydration lease agreement — review and approve for e-signature",
+   summary:"Casie from HOPE Hydration sent an updated lease agreement draft for Frank and Whitney to review. Ready to send for e-signature once approved.",
+   action:"Review the attached lease agreement draft and confirm to Casie if approved to send for e-signature.",
+   source:"Casie (HOPE Hydration) · Apr 16",status:'open',notes:[],
+   section:"Hollywood Blvd — Tenant / Leasing",addedBy:"Email Scan",addedTs:"Apr 16",
+   cardAction:{label:"Review lease ↗",prompt:"Read the latest email from Casie at HOPE Hydration (casie@hopehydration.com) about the updated lease agreement. Summarize the key lease terms and flag anything unusual before Frank approves sending for e-signature."}},
+
+  {id:12,urgency:'high',category:'deal',
+   title:"HHLA proforma — Jim Richards (CBRE) waiting on 2027-2029 projections",
+   summary:"Frank emailed Jim Richards Apr 15 confirming the proforma for 2027-2029 is being finalized. Jim Richards has been waiting and this is blocking the CBRE financing process.",
+   action:"Finalize the proforma with Jackson and send to Jim Richards at CBRE as soon as possible.",
+   source:"Jim Richards CBRE · Apr 15",status:'inprogress',notes:[],
+   section:"HHLA — Active Deal",addedBy:"Email Scan",addedTs:"Apr 16",
+   cardAction:{label:"Check HHLA status ↗",prompt:"Search Outlook for the latest HHLA emails from Jim Richards at CBRE and Jackson Foo. What is the current status of the proforma and due diligence package?"}},
+
+  {id:13,urgency:'normal',category:'internal',
+   title:"Westland Fair lockbox deposit — Wells Fargo processing, monitor for confirmation",
+   summary:"Wells Fargo is still processing the debit from Westland Fair US Bank operating account. Luisa confirmed Apr 15 they will send confirmation when complete. Franci acknowledged.",
+   action:"Monitor for Wells Fargo confirmation. Follow up with Luisa if not received by end of week.",
+   source:"Luisa Lenihan · Apr 15",status:'inprogress',notes:[],
+   section:"Internal / Routine",addedBy:"Email Scan",addedTs:"Apr 16",
+   cardAction:{label:"Check status ↗",prompt:"Search Outlook for the Westland Fair lockbox deposit thread. What is the current status of the Wells Fargo debit processing?"}}
 ];
 
-let STATE={items:[],nextId:10,lastSync:null};
+let STATE={items:[],nextId:14,lastSync:null,processedEmailIds:new Set(),processedEmailIdsList:[]};
 let currentUser='Frank Wang';
 let activeView='all',activeCat=null,activeUrg='all';
 let noteTarget=null, isBusy=false;
@@ -822,13 +854,21 @@ function loadState(){
   if(d){
     try{
       const p=JSON.parse(d);
-      STATE={...DEFAULTS,...p};
+      STATE={...STATE,...p};
       STATE.items=(p.items||[]).map(x=>({...{notes:[],status:'open',section:'Internal / Routine',addedBy:'',addedTs:'',cardAction:null},...x}));
-      // Restore processedEmailIds Set from serialized array
       STATE.processedEmailIds = new Set(p.processedEmailIdsList || []);
-    }catch(e){}
+    }catch(e){
+      // Corrupt storage — seed from defaults
+      STATE.items = DEFAULTS.map(x=>({...x}));
+      STATE.nextId = DEFAULTS.length + 1;
+      STATE.processedEmailIds = new Set();
+    }
   } else {
+    // No saved state for this version — seed from defaults
+    STATE.items = DEFAULTS.map(x=>({...x}));
+    STATE.nextId = DEFAULTS.length + 1;
     STATE.processedEmailIds = new Set();
+    saveState();
   }
 }
 function saveState(){
@@ -1777,8 +1817,10 @@ async function startSync(manual=false) {
 
     const arrMatch = emailJson && emailJson.match(/\[[\s\S]*\]/);
     if (!arrMatch) {
-      logSync('No emails returned from Outlook', 'ok');
-      if (manual) toast('Scan complete — nothing returned');
+      // Outlook connector not available from this context (Render has no MCP tokens)
+      // This is expected — items seeded from DEFAULTS are preserved
+      logSync('Outlook scan unavailable from Render — use Claude session to push live data', 'ok');
+      if (manual) toast('Live scan requires Claude session — use "Push live data to Render" button');
       isSyncRunning = false;
       document.getElementById('ldot').className = 'ldot on';
       document.getElementById('slbl').textContent = 'Synced ' + n12();
