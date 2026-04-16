@@ -54,7 +54,7 @@
   --purple:#af52de;
   --purple-bg:rgba(175,82,222,0.09);
 
-  --chat-w:340px;--sb-w:160px;--list-w:280px;
+  --chat-w:320px;--sb-w:160px;--list-w:340px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
@@ -842,6 +842,76 @@ body{
 .em-sent-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--blue);background:var(--blue-bg);border:1px solid var(--blue-b);padding:2px 7px;border-radius:8px;margin-left:8px;font-weight:600;}
 .email-msg.sent-msg .em-head{background:rgba(0,122,255,0.04);border-left:3px solid var(--blue);}
 .email-msg.sent-msg .em-from{color:var(--blue);}
+
+/* ── TRACKER PANEL ─────────────────────────────────────────────────────────── */
+.tracker-wrap{display:flex;flex:1;overflow:hidden;}
+.tracker-list{width:360px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;background:var(--s1);}
+.tracker-toolbar{padding:10px 14px;border-bottom:1px solid var(--b1);background:rgba(255,255,255,0.98);flex-shrink:0;display:flex;flex-direction:column;gap:8px;}
+.tracker-title{font-size:12px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:6px;letter-spacing:-.01em;}
+.tracker-filters{display:flex;gap:4px;}
+.tfl{padding:4px 10px;border-radius:8px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--b1);color:var(--t3);background:var(--s2);font-family:'JetBrains Mono',monospace;transition:all .15s;}
+.tfl.on{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-b);}
+.tfl:hover:not(.on){background:var(--s3);color:var(--t2);}
+.tracker-items{flex:1;overflow-y:auto;padding:6px;}
+.tracker-status{padding:7px 14px;font-size:9.5px;font-family:'JetBrains Mono',monospace;color:var(--t3);border-top:1px solid var(--b1);flex-shrink:0;background:rgba(249,249,251,0.98);}
+
+.tracker-item{padding:12px 14px;border-radius:0;cursor:pointer;border-bottom:1px solid var(--b1);border-left:3px solid transparent;transition:all .12s;position:relative;}
+.tracker-item:hover{background:var(--s3);border-left-color:var(--t4);}
+.tracker-item.sel{background:var(--blue-bg);border-left-color:var(--blue);}
+.tracker-item.done-item{opacity:.5;}
+.ti-meta{display:flex;align-items:center;gap:5px;margin-bottom:4px;}
+.ti-urg{font-size:9px;font-family:'JetBrains Mono',monospace;padding:1px 6px;border-radius:5px;font-weight:700;text-transform:uppercase;}
+.ti-urg.critical{background:var(--red-bg);color:var(--red);}
+.ti-urg.high{background:var(--amber-bg);color:var(--amber);}
+.ti-urg.normal{background:var(--blue-bg);color:var(--blue);}
+.ti-urg.low{background:var(--s4);color:var(--t3);}
+.ti-cat{font-size:9px;font-family:'JetBrains Mono',monospace;padding:1px 6px;border-radius:5px;background:var(--s3);color:var(--t2);}
+.ti-status{font-size:9px;font-family:'JetBrains Mono',monospace;padding:1px 6px;border-radius:5px;margin-left:auto;}
+.ti-status.open{background:var(--blue-bg);color:var(--blue);}
+.ti-status.inprogress{background:var(--amber-bg);color:var(--amber);}
+.ti-status.done{background:var(--green-bg);color:var(--green);}
+.ti-title{font-size:12px;font-weight:600;color:var(--tx);line-height:1.35;margin-bottom:3px;letter-spacing:-.01em;}
+.ti-src{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;}
+
+.tracker-detail{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fafafa;}
+.tracker-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);gap:8px;font-size:13px;}
+.tracker-detail-inner{flex:1;overflow-y:auto;padding:24px 28px;}
+.td-subject{font-size:18px;font-weight:700;color:var(--tx);margin-bottom:10px;letter-spacing:-.02em;line-height:1.3;}
+.td-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--b1);}
+.td-section{margin-bottom:16px;}
+.td-label{font-size:9px;font-weight:700;color:var(--t3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.td-text{font-size:13px;color:var(--t2);line-height:1.6;}
+.td-action-line{background:var(--blue-bg);border:1px solid var(--blue-b);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);font-family:'JetBrains Mono',monospace;margin-bottom:14px;font-weight:500;}
+.td-btns{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--b1);}
+.td-status-select{padding:6px 10px;border-radius:8px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:var(--s2);color:var(--t2);cursor:pointer;font-family:'Inter',sans-serif;-webkit-appearance:none;outline:none;}
+.td-notes{margin-top:14px;}
+.td-note{padding:8px 12px;background:var(--s3);border-radius:7px;margin-bottom:5px;border-left:2px solid var(--blue);font-size:11px;color:var(--t2);}
+.td-note-by{font-weight:700;color:var(--tx);margin-right:4px;}
+
+/* ── NOTION PANEL ─────────────────────────────────────────────────────────── */
+.notion-wrap{display:flex;flex:1;flex-direction:column;overflow:hidden;}
+.notion-toolbar{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--b1);flex-shrink:0;background:rgba(255,255,255,0.98);gap:12px;}
+.notion-filter-btns{display:flex;gap:4px;}
+.nfl{padding:4px 10px;border-radius:8px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--b1);color:var(--t3);background:var(--s2);font-family:'JetBrains Mono',monospace;transition:all .15s;}
+.nfl.on{background:rgba(0,0,0,0.06);color:var(--tx);border-color:rgba(0,0,0,0.15);}
+.nfl:hover:not(.on){background:var(--s3);color:var(--t2);}
+.notion-feed{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+.notion-task{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:13px 15px;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+.notion-task:hover{border-color:var(--b2);box-shadow:0 2px 8px rgba(0,0,0,0.07);}
+.notion-task.done-task{opacity:.45;}
+.nt-top{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.nt-source{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:5px;background:rgba(0,0,0,0.05);color:var(--t2);font-weight:500;}
+.nt-date{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--t3);margin-left:auto;}
+.nt-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:5px;letter-spacing:-.01em;line-height:1.35;}
+.nt-body{font-size:12px;color:var(--t2);line-height:1.55;margin-bottom:8px;}
+.nt-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.nt-btn{padding:5px 11px;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--b1);color:var(--t2);background:var(--s2);transition:all .15s;font-family:'Inter',sans-serif;letter-spacing:-.01em;}
+.nt-btn:hover{background:var(--s3);color:var(--tx);border-color:var(--b2);}
+.nt-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+.nt-btn.primary:hover{background:#0066d6;}
+.nt-done-badge{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--green);background:var(--green-bg);border:1px solid var(--green-b);padding:1px 7px;border-radius:8px;font-weight:600;}
+.notion-status-bar{padding:7px 16px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--t3);border-top:1px solid var(--b1);flex-shrink:0;display:flex;align-items:center;gap:10px;background:rgba(249,249,251,0.98);}
+.notion-section-hdr{font-size:10px;font-weight:700;color:var(--t3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.07em;padding:10px 4px 5px;border-bottom:1px solid var(--b1);margin-bottom:6px;}
 </style>
 </head>
 <body>
@@ -877,6 +947,14 @@ body{
   <div class="vtab act" id="vt-inbox" onclick="switchView('inbox',this)">
     Inbox
     <span class="vtab-badge" id="inbox-unread-badge">0</span>
+  </div>
+  <div class="vtab" id="vt-tracker" onclick="switchView('tracker',this)">
+    Tracker
+    <span class="vtab-badge" id="tracker-badge">0</span>
+  </div>
+  <div class="vtab" id="vt-notion" onclick="switchView('notion',this)">
+    Notion
+    <span class="vtab-badge" id="notion-badge">0</span>
   </div>
   <div class="vtab" id="vt-slack" onclick="switchView('slack',this)">
     Slack
@@ -956,6 +1034,69 @@ body{
   </div>
 </div>
 
+
+<!-- TRACKER PANEL -->
+<div class="main" id="tracker-view" style="display:none;">
+  <div class="tracker-wrap">
+    <div class="tracker-list">
+      <div class="tracker-toolbar">
+        <div class="tracker-title">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          Action Tracker
+        </div>
+        <div class="tracker-filters">
+          <div class="tfl on" id="tfl-open" onclick="setTrackerFilter('open',this)">Open</div>
+          <div class="tfl" id="tfl-inprogress" onclick="setTrackerFilter('inprogress',this)">In Progress</div>
+          <div class="tfl" id="tfl-done" onclick="setTrackerFilter('done',this)">Done</div>
+          <div class="tfl" id="tfl-all" onclick="setTrackerFilter('all',this)">All</div>
+        </div>
+      </div>
+      <div class="tracker-items" id="tracker-items">
+        <div style="padding:24px;text-align:center;color:var(--t3);font-size:12px;font-family:'JetBrains Mono',monospace;">Add emails to tracker using the "+ Add to tracker" button in any email</div>
+      </div>
+      <div class="tracker-status" id="tracker-status">0 items</div>
+    </div>
+    <div class="tracker-detail" id="tracker-detail">
+      <div class="tracker-empty">
+        <div style="font-size:28px;opacity:.3;">✓</div>
+        <div>Select an item to view details</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTION TASKS PANEL -->
+<div class="main" id="notion-view" style="display:none;">
+  <div class="notion-wrap">
+    <div class="notion-toolbar">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:20px;height:20px;background:#000;border-radius:4px;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-weight:700;font-size:11px;">N</span></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--tx);letter-spacing:-.01em;">Notion Tasks</div>
+          <div style="font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;">Tasks & mentions assigned to Frank Wang</div>
+        </div>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+        <div class="notion-filter-btns">
+          <div class="nfl on" id="nfl-all" onclick="setNotionFilter('all',this)">All</div>
+          <div class="nfl" id="nfl-open" onclick="setNotionFilter('open',this)">Open</div>
+          <div class="nfl" id="nfl-done" onclick="setNotionFilter('done',this)">Done</div>
+        </div>
+        <button class="inbox-refresh" id="notion-refresh-btn" onclick="loadNotionTasks(true)" title="Scan Notion">↻</button>
+      </div>
+    </div>
+    <div class="notion-feed" id="notion-feed">
+      <div style="padding:40px;text-align:center;color:var(--t3);font-size:13px;">
+        <div style="font-size:28px;margin-bottom:12px;opacity:.3;">N</div>
+        Click ↻ to scan Notion for tasks assigned to you
+      </div>
+    </div>
+    <div class="notion-status-bar">
+      <span id="notion-status-text">—</span>
+      <span style="margin-left:auto;cursor:pointer;color:var(--blue);font-size:11px;" onclick="sq('Search Notion for all open tasks and action items assigned to Frank Wang and summarize what needs my attention')">Ask AI ↗</span>
+    </div>
+  </div>
+</div>
 
 <!-- SLACK BOARD PANEL -->
 <div class="main" id="slack-view" style="display:none;">
@@ -1113,7 +1254,7 @@ body{
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v23',UK='hg-user-v4';
+const SK='hg-v24',UK='hg-user-v4';
 const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
 const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
@@ -1291,6 +1432,13 @@ function saveState(){
   if (STATE.processedEmailIds) STATE.processedEmailIdsList = Array.from(STATE.processedEmailIds);
   localStorage.setItem(SK,JSON.stringify(STATE));
   localStorage.setItem('hg-p6',Date.now().toString());
+  // Update tracker badge
+  const openCount = STATE.items.filter(i => i.status === 'open' || i.status === 'inprogress' || i.status === 'waiting').length;
+  const badge = document.getElementById('tracker-badge');
+  if (badge) {
+    badge.textContent = openCount;
+    badge.classList.toggle('show', openCount > 0);
+  }
 }
 window.addEventListener('storage',e=>{if(e.key==='hg-p6'){loadState();render();counts();toast('Updated by team member');}});
 
@@ -2798,7 +2946,7 @@ function renderEmailActionPanel(thread, existingItem) {
           <option value="parking">Parking</option>
           <option value="internal" selected>Internal</option>
         </select>
-        <button class="th-btn gold" onclick="createEmailAction('${tid}','${safeSubject}','${safePreview}','${safeSender}')">+ Add to tracker</button>
+        <button class="th-btn gold" onclick="createEmailAction('${tid}','${safeSubject}','${safePreview}','${safeSender}');setTimeout(()=>{switchView('tracker',document.getElementById('vt-tracker'));},300)">+ Add to tracker</button>
         <button class="th-btn" onclick="sq('Triage this email for me: from ${safeSender} about ${safeSubject}. ${safePreview}. What urgency, category, and action do I need to take?')">AI triage ↗</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
@@ -2982,18 +3130,28 @@ function switchView(view, tabEl) {
   document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('act'));
   if (tabEl) tabEl.classList.add('act');
 
-  const inboxMain = document.getElementById('inbox-view');
-  const slackMain = document.getElementById('slack-view');
-
-  if (inboxMain) inboxMain.style.display = 'none';
-  if (slackMain) slackMain.style.display = 'none';
+  const panels = ['inbox-view','slack-view','tracker-view','notion-view'];
+  panels.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
 
   if (view === 'slack') {
-    if (slackMain) slackMain.style.display = 'flex';
+    const el = document.getElementById('slack-view');
+    if (el) el.style.display = 'flex';
     if (!SLACK.loaded) loadSlack(false);
+  } else if (view === 'tracker') {
+    const el = document.getElementById('tracker-view');
+    if (el) el.style.display = 'flex';
+    renderTrackerList();
+  } else if (view === 'notion') {
+    const el = document.getElementById('notion-view');
+    if (el) el.style.display = 'flex';
+    if (!NOTION_STATE.loaded) loadNotionTasks(false);
   } else {
     // Default: inbox
-    if (inboxMain) inboxMain.style.display = 'flex';
+    const el = document.getElementById('inbox-view');
+    if (el) el.style.display = 'flex';
     if (!INBOX.loaded) loadInboxDirect();
   }
 }
@@ -3452,6 +3610,340 @@ function filterThreads() {
     </div>`;
   }).join('');
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TRACKER ENGINE
+// Items from STATE.items that have emailThreadId — displayed in Tracker tab
+// ══════════════════════════════════════════════════════════════════════════════
+let trackerFilter = 'open';
+let selectedTrackerId = null;
+
+function setTrackerFilter(f, el) {
+  trackerFilter = f;
+  document.querySelectorAll('.tfl').forEach(x => x.classList.remove('on'));
+  if (el) el.classList.add('on');
+  renderTrackerList();
+}
+
+function getTrackerItems() {
+  return STATE.items.filter(i => {
+    if (trackerFilter === 'all') return true;
+    if (trackerFilter === 'open') return i.status === 'open';
+    if (trackerFilter === 'inprogress') return i.status === 'inprogress' || i.status === 'waiting';
+    if (trackerFilter === 'done') return i.status === 'done';
+    return true;
+  });
+}
+
+function renderTrackerList() {
+  const list = document.getElementById('tracker-items');
+  const statusEl = document.getElementById('tracker-status');
+  if (!list) return;
+
+  const items = getTrackerItems();
+  if (!items.length) {
+    list.innerHTML = `<div style="padding:28px;text-align:center;color:var(--t3);font-size:12px;font-family:'JetBrains Mono',monospace;">No ${trackerFilter === 'all' ? '' : trackerFilter} items</div>`;
+    if (statusEl) statusEl.textContent = '0 items';
+    return;
+  }
+
+  list.innerHTML = items.map(i => {
+    const isDone = i.status === 'done';
+    return `<div class="tracker-item${i.id === selectedTrackerId ? ' sel' : ''}${isDone ? ' done-item' : ''}" onclick="openTrackerItem(${i.id})">
+      <div class="ti-meta">
+        <span class="ti-urg ${i.urgency}">${i.urgency}</span>
+        <span class="ti-cat">${CAT[i.category]||i.category}</span>
+        <span class="ti-status ${i.status}">${i.status === 'inprogress' ? 'in progress' : i.status}</span>
+      </div>
+      <div class="ti-title">${escHtml(i.title)}</div>
+      <div class="ti-src">${escHtml(i.source||'')} · ${i.addedTs||''}</div>
+    </div>`;
+  }).join('');
+
+  if (statusEl) statusEl.textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
+
+  // Update badge
+  const openCount = STATE.items.filter(i => i.status === 'open' || i.status === 'inprogress' || i.status === 'waiting').length;
+  const badge = document.getElementById('tracker-badge');
+  if (badge) {
+    badge.textContent = openCount;
+    badge.classList.toggle('show', openCount > 0);
+  }
+}
+
+function openTrackerItem(id) {
+  selectedTrackerId = id;
+  const item = STATE.items.find(x => x.id === id);
+  const detail = document.getElementById('tracker-detail');
+  if (!item || !detail) return;
+
+  renderTrackerList(); // re-render to update selected state
+
+  const isDone = item.status === 'done';
+  const notesHtml = (item.notes||[]).length
+    ? item.notes.map(n => `<div class="td-note"><span class="td-note-by">${escHtml(n.by)}</span><span style="color:var(--t3);font-size:10px;">${n.ts}</span> — ${escHtml(n.text)}</div>`).join('')
+    : '<div style="font-size:11px;color:var(--t3);font-style:italic;">No notes yet</div>';
+
+  // Find linked thread
+  const thread = item.emailThreadId ? INBOX.threads.find(t => t.id === item.emailThreadId) : null;
+  const threadLink = thread ? `<button class="th-btn" onclick="switchView('inbox',document.getElementById('vt-inbox'));setTimeout(()=>openThread('${item.emailThreadId}'),300);">Open email thread ↗</button>` : '';
+
+  detail.innerHTML = `<div class="tracker-detail-inner">
+    <div class="td-subject">${escHtml(item.title)}</div>
+    <div class="td-meta">
+      <span class="ti-urg ${item.urgency}">${item.urgency}</span>
+      <span class="ti-cat">${CAT[item.category]||item.category}</span>
+      <span style="font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;">${escHtml(item.source||'')} · Added ${item.addedTs||''}</span>
+    </div>
+    ${item.summary ? `<div class="td-section"><div class="td-label">Summary</div><div class="td-text">${escHtml(item.summary)}</div></div>` : ''}
+    ${item.action ? `<div class="td-action-line">→ ${escHtml(item.action)}</div>` : ''}
+    <div class="td-btns">
+      <select class="td-status-select" onchange="updateTrackerItemStatus(${id},this.value)">
+        <option value="open" ${item.status==='open'?'selected':''}>Open</option>
+        <option value="inprogress" ${item.status==='inprogress'?'selected':''}>In Progress</option>
+        <option value="waiting" ${item.status==='waiting'?'selected':''}>Waiting</option>
+        <option value="escalated" ${item.status==='escalated'?'selected':''}>Escalated</option>
+        <option value="done" ${item.status==='done'?'selected':''}>Done ✓</option>
+      </select>
+      <button class="th-btn gold" onclick="sq('Help me action this: ${escHtml(item.title).replace(/'/g,"\\'")}. Summary: ${escHtml((item.summary||'').slice(0,80)).replace(/'/g,"\\'")}')">Ask AI ↗</button>
+      ${threadLink}
+      <button class="th-btn" onclick="openTrackerNote(${id})">Add note</button>
+      ${isDone ? `<button class="th-btn" onclick="updateTrackerItemStatus(${id},'open')">Reopen</button>` : `<button class="ibtn gd" onclick="updateTrackerItemStatus(${id},'done')">Done ✓</button>`}
+    </div>
+    <div class="td-notes" style="margin-top:18px;">
+      <div class="td-label">Notes</div>
+      ${notesHtml}
+    </div>
+  </div>`;
+}
+
+function updateTrackerItemStatus(id, status) {
+  const item = STATE.items.find(x => x.id === id);
+  if (!item) return;
+  item.status = status;
+  item.lastEditedBy = currentUser;
+  saveState();
+  renderTrackerList();
+  openTrackerItem(id);
+  if (status === 'done') toast('✓ Marked complete');
+}
+
+function openTrackerNote(id) {
+  noteTarget = id;
+  const item = STATE.items.find(x => x.id === id);
+  const sub = document.getElementById('notesub');
+  if (sub) sub.textContent = (item?.title||'').slice(0,55)+'...';
+  const txt = document.getElementById('notetxt');
+  if (txt) txt.value = '';
+  const modal = document.getElementById('notem');
+  if (modal) modal.classList.add('open');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NOTION TASKS ENGINE
+// Frank's Notion user ID: d19c5927-7586-4b6e-ad0b-63674dcb1235
+// Scans PM Meeting notes, task databases, and tagged mentions
+// ══════════════════════════════════════════════════════════════════════════════
+const FRANK_NOTION_ID = 'd19c5927-7586-4b6e-ad0b-63674dcb1235';
+const NOTION_PM_MEETING_PAGE_IDS = [
+  '3417425b-74cf-80d8-ac09-fa221c8599ad', // Apr 14
+  '33b7425b-74cf-80d3-b052-d5eb1e2496a2', // Apr 7
+  '3337425b-74cf-80e8-9002-ebb1d82163ac', // Mar 31
+  '32d7425b-74cf-8013-b83d-fdf57aa6a39f', // Mar 24
+];
+
+const NOTION_STATE = {
+  tasks: [],
+  loaded: false,
+  loading: false,
+  filter: 'all',
+};
+
+function setNotionFilter(f, el) {
+  NOTION_STATE.filter = f;
+  document.querySelectorAll('.nfl').forEach(x => x.classList.remove('on'));
+  if (el) el.classList.add('on');
+  renderNotionFeed();
+}
+
+async function loadNotionTasks(manual=false) {
+  if (NOTION_STATE.loading) return;
+  NOTION_STATE.loading = true;
+
+  const feed = document.getElementById('notion-feed');
+  const statusEl = document.getElementById('notion-status-text');
+  const btn = document.getElementById('notion-refresh-btn');
+  if (btn) { btn.classList.add('spin'); btn.disabled = true; }
+  if (statusEl) statusEl.textContent = 'Scanning Notion...';
+  if (feed && manual) feed.innerHTML = '<div style="padding:28px;text-align:center;color:var(--t3);font-size:12px;font-family:JetBrains Mono,monospace;">Scanning Notion workspace...</div>';
+
+  try {
+    // Search for Frank's tasks across all spaces
+    const raw = await callClaude(
+      `Search Notion for ALL tasks, action items, and mentions assigned to Frank Wang (user ID: ${FRANK_NOTION_ID}, email: fwang@cannonmgt.com). Search:
+1. PM Meeting notes from the last 60 days — look for lines containing "Frank", "(FW)", "Frank to", or mentions of Frank's name next to checkboxes
+2. The "Frank's Task List" database and "My Tasks" database
+3. Any page where Frank is tagged or mentioned with an outstanding action
+
+For each task found return a JSON array where each item has:
+{
+  "title": "task title max 10 words",
+  "body": "full context of the task — what it is, who assigned it, any relevant details",
+  "source": "page title where found, e.g. PM Meeting 04.14.26",
+  "sourceUrl": "notion URL if available",
+  "isChecked": true/false (is the checkbox checked/done?),
+  "date": "date found or meeting date if from meeting notes",
+  "assignedBy": "who assigned this task to Frank if mentioned"
+}
+
+Return ONLY the JSON array. Include ALL tasks whether complete or not. Max 30 items.`,
+      'You are a Notion workspace scanner. Call the search tool immediately. Return ONLY a valid JSON array of task objects.',
+      ['notion']
+    );
+
+    const match = raw && raw.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('No tasks returned');
+
+    const tasks = JSON.parse(match[0]);
+    NOTION_STATE.tasks = tasks.map((t, i) => ({
+      ...t,
+      id: 'nt-' + i,
+      status: t.isChecked ? 'done' : 'open',
+    }));
+    NOTION_STATE.loaded = true;
+
+    const openCount = NOTION_STATE.tasks.filter(t => t.status !== 'done').length;
+    const badge = document.getElementById('notion-badge');
+    if (badge) {
+      badge.textContent = openCount;
+      badge.classList.toggle('show', openCount > 0);
+    }
+
+    renderNotionFeed();
+    if (statusEl) statusEl.textContent = NOTION_STATE.tasks.length + ' tasks found · ' + n12();
+    if (manual) toast('Notion: ' + NOTION_STATE.tasks.length + ' tasks loaded');
+    logSync('✓ Notion: ' + NOTION_STATE.tasks.length + ' tasks', 'ok');
+
+  } catch(e) {
+    const msg = (e.message||'unknown').slice(0,50);
+    if (statusEl) statusEl.textContent = 'Scan failed: ' + msg;
+    if (feed) feed.innerHTML = `<div style="padding:28px;text-align:center;color:var(--red);font-size:12px;">${escHtml(msg)}</div>`;
+    if (manual) toast('Notion scan failed: ' + msg);
+  }
+
+  NOTION_STATE.loading = false;
+  if (btn) { btn.classList.remove('spin'); btn.disabled = false; }
+}
+
+function renderNotionFeed() {
+  const feed = document.getElementById('notion-feed');
+  if (!feed) return;
+
+  const filter = NOTION_STATE.filter;
+  let tasks = NOTION_STATE.tasks.filter(t => {
+    if (filter === 'open') return t.status !== 'done';
+    if (filter === 'done') return t.status === 'done';
+    return true;
+  });
+
+  if (!tasks.length) {
+    feed.innerHTML = `<div style="padding:28px;text-align:center;color:var(--t3);font-size:12px;font-family:'JetBrains Mono',monospace;">No ${filter === 'all' ? '' : filter} tasks found. Click ↻ to scan.</div>`;
+    return;
+  }
+
+  // Group by source page
+  const grouped = {};
+  tasks.forEach(t => {
+    const src = t.source || 'Other';
+    if (!grouped[src]) grouped[src] = [];
+    grouped[src].push(t);
+  });
+
+  let html = '';
+  Object.entries(grouped).forEach(([src, items]) => {
+    html += `<div class="notion-section-hdr">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:4px;"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+      ${escHtml(src)}
+    </div>`;
+    items.forEach(t => {
+      const isDone = t.status === 'done';
+      const safeTitle = escHtml(t.title).replace(/`/g,'');
+      const safeBody = escHtml((t.body||'').slice(0,200)).replace(/`/g,'');
+      html += `<div class="notion-task${isDone ? ' done-task' : ''}">
+        <div class="nt-top">
+          <span class="nt-source">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" style="display:inline;margin-right:3px;vertical-align:middle;"><rect width="24" height="24" rx="4"/><path fill="white" d="M7 7h10v2H7zm0 4h7v2H7zm0 4h5v2H7z"/></svg>
+            ${escHtml(t.source||'Notion')}
+          </span>
+          ${t.date ? `<span class="nt-date">${escHtml(t.date)}</span>` : ''}
+          ${isDone ? '<span class="nt-done-badge">✓ Done</span>' : ''}
+        </div>
+        <div class="nt-title">${isDone ? '<s>' : ''}${escHtml(t.title)}${isDone ? '</s>' : ''}</div>
+        ${t.body ? `<div class="nt-body">${escHtml(t.body.slice(0,180))}${t.body.length>180?'…':''}</div>` : ''}
+        <div class="nt-btns">
+          ${isDone
+            ? `<button class="nt-btn" onclick="toggleNotionTask('${t.id}')">Reopen</button>`
+            : `<button class="nt-btn primary" onclick="toggleNotionTask('${t.id}')">Mark done</button>`
+          }
+          <button class="nt-btn" onclick="addNotionTaskToTracker('${t.id}')">+ Add to Tracker</button>
+          <button class="nt-btn" onclick="sq('Help me action this Notion task: ${safeTitle}. Context: ${safeBody}')">Ask AI ↗</button>
+          ${t.sourceUrl ? `<a href="${t.sourceUrl}" target="_blank" class="nt-btn" style="text-decoration:none;">Open in Notion ↗</a>` : ''}
+        </div>
+      </div>`;
+    });
+  });
+
+  feed.innerHTML = html;
+}
+
+function toggleNotionTask(id) {
+  const task = NOTION_STATE.tasks.find(t => t.id === id);
+  if (!task) return;
+  task.status = task.status === 'done' ? 'open' : 'done';
+  task.isChecked = task.status === 'done';
+
+  const openCount = NOTION_STATE.tasks.filter(t => t.status !== 'done').length;
+  const badge = document.getElementById('notion-badge');
+  if (badge) {
+    badge.textContent = openCount;
+    badge.classList.toggle('show', openCount > 0);
+  }
+  renderNotionFeed();
+  toast(task.status === 'done' ? '✓ Task marked done' : 'Task reopened');
+}
+
+function addNotionTaskToTracker(id) {
+  const task = NOTION_STATE.tasks.find(t => t.id === id);
+  if (!task) return;
+  const item = {
+    id: STATE.nextId++,
+    urgency: 'normal',
+    category: 'notion',
+    title: task.title,
+    summary: task.body || '',
+    action: '',
+    source: 'Notion · ' + (task.source||''),
+    status: task.status === 'done' ? 'done' : 'open',
+    notes: [],
+    section: 'Internal / Routine',
+    addedBy: 'Notion Scan',
+    addedTs: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+    cardAction: { label: 'Ask AI ↗', prompt: 'Help me action: ' + task.title },
+  };
+  STATE.items.push(item);
+  saveState();
+  renderTrackerList();
+  toast('✓ Added to Tracker');
+}
+
+// Hook notion tasks into the auto-scan on session start (fires 8 min after load)
+setTimeout(() => {
+  if (!NOTION_STATE.loaded) loadNotionTasks(false);
+}, 8 * 60 * 1000);
+
+// ── HOOK createEmailAction INTO TRACKER ──────────────────────────────────────
+// Patch createEmailAction to also update tracker badge after adding
+const _origCreateEmailAction = typeof createEmailAction !== 'undefined' ? createEmailAction : null;
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadState(); initUser();
