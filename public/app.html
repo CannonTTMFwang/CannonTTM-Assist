@@ -836,6 +836,12 @@ body{
 }
 .eap-btns{display:flex;gap:6px;flex-wrap:wrap;}
 .eap-triage{display:flex;flex-direction:column;gap:6px;}
+
+/* ── SENT EMAIL INDICATORS ── */
+.ti-replied{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--green);background:var(--green-bg);border:1px solid var(--green-b);padding:1px 6px;border-radius:8px;margin-left:3px;font-weight:600;}
+.em-sent-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--blue);background:var(--blue-bg);border:1px solid var(--blue-b);padding:2px 7px;border-radius:8px;margin-left:8px;font-weight:600;}
+.email-msg.sent-msg .em-head{background:rgba(0,122,255,0.04);border-left:3px solid var(--blue);}
+.email-msg.sent-msg .em-from{color:var(--blue);}
 </style>
 </head>
 <body>
@@ -887,6 +893,7 @@ body{
     <div class="ni act" id="inb-nav-all" onclick="setInboxNav('all',this)"><div class="nd" style="background:var(--gold)"></div>All emails<span class="nc" id="inb-nc-all">0</span></div>
     <div class="ni" id="inb-nav-unread" onclick="setInboxNav('unread',this)"><div class="nd" style="background:var(--blue)"></div>Unread<span class="nc" id="inb-nc-unread">0</span></div>
     <div class="ni" id="inb-nav-flagged" onclick="setInboxNav('flagged',this)"><div class="nd" style="background:var(--red)"></div>Action needed<span class="nc" id="inb-nc-flagged">0</span></div>
+    <div class="ni" id="inb-nav-replied" onclick="setInboxNav('replied',this)"><div class="nd" style="background:var(--green)"></div>You replied<span class="nc" id="inb-nc-replied">0</span></div>
     <div class="ni" id="inb-nav-attach" onclick="setInboxNav('attachments',this)"><div class="nd" style="background:var(--amber)"></div>Has attachment<span class="nc" id="inb-nc-attach">0</span></div>
   </div>
   <div class="ns">
@@ -930,7 +937,8 @@ body{
           <div class="ifl on" id="ifl-all" onclick="setInboxFilter('all',this)">All</div>
           <div class="ifl" id="ifl-unread" onclick="setInboxFilter('unread',this)">Unread</div>
         </div>
-        <div class="inbox-refresh" id="inbox-refresh-btn" onclick="loadInbox(true)" title="Refresh">↻</div>
+        <div class="inbox-refresh" id="inbox-refresh-btn" onclick="loadInbox(true)" title="Refresh inbox">↻</div>
+        <div class="inbox-refresh" onclick="loadSentEmails(true)" title="Refresh sent emails" style="color:var(--blue);">↩</div>
       </div>
       <div class="thread-list" id="thread-list">
         <div style="padding:24px;text-align:center;color:var(--t3);font-size:12px;font-family:'DM Mono',monospace;">Click Inbox tab to load emails</div>
@@ -1105,7 +1113,7 @@ body{
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v22',UK='hg-user-v4';
+const SK='hg-v23',UK='hg-user-v4';
 const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
 const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
@@ -2372,8 +2380,10 @@ async function startSync(manual=false) {
 // ── INBOX ENGINE ──────────────────────────────────────────────────────────────
 // Stores all loaded email threads, keyed by conversationId
 let INBOX = {
-  threads: [],          // [{id, subject, latestSender, latestTime, latestPreview, unread, hasAttachment, messages:[]}]
+  threads: [],          // [{id, subject, latestSender, latestTime, latestPreview, unread, hasAttachment, hasReply, messages:[]}]
   rawEmails: [],        // flat list of all fetched email metadata
+  sentEmails: [],       // Frank's sent emails merged into threads
+  sentLoaded: false,
   loading: false,
   loaded: false,
   currentFilter: 'all', // 'all' | 'unread'
@@ -2408,6 +2418,81 @@ function fmtFullTime(dt) {
 }
 
 // Group flat email list into conversation threads
+// ── SENT EMAIL SCAN ───────────────────────────────────────────────────────────
+// Fetches Frank's sent emails and merges them into inbox threads
+async function loadSentEmails(force=false) {
+  if (INBOX.sentLoaded && !force) return;
+  try {
+    const resp = await callClaude(
+      'Search my Outlook Sent Items folder for emails sent in the last 14 days. Return ALL sent emails. For each: id, conversationId, subject, sender (Frank Wang), recipients (to field), sentDateTime, hasAttachments, importance, and a 1-sentence summary of what I wrote. Return as JSON array only.',
+      'You are an Outlook email assistant. Search the Sent Items folder immediately. Return ONLY a JSON array.',
+      ['outlook']
+    );
+    const match = resp && resp.match(/\[[\s\S]*\]/);
+    if (!match) return;
+    const sentRaw = JSON.parse(match[0]);
+    // Normalize sent emails into same format as inbox emails
+    INBOX.sentEmails = sentRaw.map(e => ({
+      ...e,
+      isSent: true,
+      isRead: true,
+      senderName: 'Frank Wang',
+      senderEmail: 'fwang@cannonmgt.com',
+      sender: 'Frank Wang <fwang@cannonmgt.com>',
+      receivedDateTime: e.sentDateTime || e.receivedDateTime,
+    }));
+    INBOX.sentLoaded = true;
+    // Merge sent emails into existing threads
+    if (INBOX.loaded && INBOX.threads.length > 0) {
+      mergeSentIntoThreads();
+      filterThreads();
+      updateInboxSidebarCounts();
+    }
+    logSync('✓ ' + INBOX.sentEmails.length + ' sent emails merged into inbox', 'ok');
+  } catch(e) {
+    logSync('Sent scan: ' + (e.message||'error').slice(0,40), 'ok');
+  }
+}
+
+function mergeSentIntoThreads() {
+  if (!INBOX.sentEmails.length) return;
+  const allEmails = [...INBOX.rawEmails];
+  const existingIds = new Set(allEmails.map(e => e.id));
+
+  INBOX.sentEmails.forEach(sent => {
+    if (existingIds.has(sent.id)) return; // already in thread
+    // Match by conversationId first, then by normalized subject
+    const normalSubject = (sent.subject||'').replace(/^(RE:|FW:|Fwd:|Re:)\s*/gi,'').trim().toLowerCase();
+    const matchedThread = INBOX.threads.find(t => {
+      if (sent.conversationId && t.id === sent.conversationId) return true;
+      const tNorm = (t.subject||'').toLowerCase();
+      return tNorm === normalSubject || tNorm.includes(normalSubject.slice(0,30));
+    });
+    if (matchedThread) {
+      // Add sent email to this thread's messages
+      matchedThread.messages.push(sent);
+      matchedThread.messages.sort((a,b) => new Date(b.receivedDateTime) - new Date(a.receivedDateTime));
+      matchedThread.messageCount = matchedThread.messages.length;
+      // Mark thread as replied
+      matchedThread.hasReply = true;
+      matchedThread.lastReplyTime = sent.receivedDateTime;
+      existingIds.add(sent.id);
+    } else {
+      // New sent thread (outbound emails not in inbox)
+      allEmails.push(sent);
+    }
+  });
+
+  // Re-merge all emails to pick up any new sent-only threads
+  const combinedThreads = groupIntoThreads(allEmails);
+  // Preserve hasReply flag
+  combinedThreads.forEach(t => {
+    const old = INBOX.threads.find(o => o.id === t.id);
+    if (old?.hasReply) { t.hasReply = true; t.lastReplyTime = old.lastReplyTime; }
+  });
+  INBOX.threads = combinedThreads;
+}
+
 function groupIntoThreads(emails) {
   const threadMap = {};
   // Sort newest first
@@ -2512,6 +2597,8 @@ async function loadInboxDirect() {
     filterThreads();
     updateInboxBadge();
     updateInboxSidebarCounts();
+    // Kick off sent email scan in background after inbox is loaded
+    setTimeout(() => loadSentEmails(false), 2000);
     const ago = data.syncedAt ? ' · synced ' + relTime(new Date(data.syncedAt).getTime()/1000) : '';
     document.getElementById('inbox-status').textContent =
       INBOX.threads.length + ' threads · ' + emails.length + ' emails' + ago;
@@ -2559,6 +2646,8 @@ function loadInboxFromActionBoardData() {
   filterThreads();
   updateInboxSidebarCounts();
   document.getElementById('inbox-status').textContent = INBOX.threads.length + ' threads · ' + knownEmails.length + ' emails (cached Apr 16)';
+  // Kick off sent scan in background
+  setTimeout(() => loadSentEmails(false), 3000);
 }
 
 function updateInboxBadge() {
@@ -2784,14 +2873,16 @@ function openEmailNoteModal(threadId) {
 function renderEmailMsg(msg, isLatest) {
   const senderName = (msg.sender||'').replace(/<.*>/,'').trim() || msg.sender || 'Unknown';
   const av = initials(senderName);
-  const col = avatarColor(senderName);
+  const col = msg.isSent ? 'var(--blue)' : avatarColor(senderName);
   const msgId = 'emsg-' + msg.id.replace(/[^a-z0-9]/gi,'');
-  return `<div class="email-msg${isLatest?' latest':''}" id="${msgId}">
+  const sentClass = msg.isSent ? ' sent-msg' : '';
+  const sentBadge = msg.isSent ? '<span class="em-sent-badge">↩ You replied</span>' : '';
+  return `<div class="email-msg${isLatest?' latest':''}${sentClass}" id="${msgId}">
     <div class="em-head" onclick="toggleEmailBody('${msgId}')">
       <div class="em-av" style="background:${col}">${av.toUpperCase()}</div>
       <div class="em-info">
-        <div class="em-from">${escHtml(senderName)}</div>
-        <div class="em-to">to me · ${fmtFullTime(msg.receivedDateTime)}</div>
+        <div class="em-from">${escHtml(senderName)}${sentBadge}</div>
+        <div class="em-to">${msg.isSent ? 'Sent · ' : 'to me · '}${fmtFullTime(msg.receivedDateTime)}</div>
       </div>
       ${msg.hasAttachments ? '<span class="em-attach">📎</span>' : ''}
       <div class="em-time">${relTime(msg.receivedDateTime)}</div>
@@ -3282,6 +3373,7 @@ function updateInboxSidebarCounts() {
   // Action-needed = threads that have an action item that is open/inprogress
   const actionedIds = new Set(items.filter(x=>x.emailThreadId&&x.status!=='done').map(x=>x.emailThreadId));
   nc('inb-nc-flagged', actionedIds.size);
+  nc('inb-nc-replied', threads.filter(t=>t.hasReply).length);
 
   // Status counts from items linked to threads
   nc('inb-nc-open', items.filter(x=>x.emailThreadId&&x.status==='open').length);
@@ -3310,6 +3402,7 @@ function filterThreads() {
     // Sidebar nav filter
     if (inboxNavFilter === 'unread' && !t.unread) return false;
     if (inboxNavFilter === 'attachments' && !t.hasAttachment) return false;
+    if (inboxNavFilter === 'replied' && !t.hasReply) return false;
     if (inboxNavFilter === 'flagged') {
       const linked = items.find(x=>x.emailThreadId===t.id&&x.status!=='done');
       if (!linked) return false;
@@ -3349,6 +3442,7 @@ function filterThreads() {
         <span class="ti-from">${escHtml(senderName)}${imp}</span>
         ${t.unread ? '<div class="ti-unread-dot"></div>' : ''}
         ${t.messageCount > 1 ? `<span class="ti-count">${t.messageCount}</span>` : ''}
+        ${t.hasReply ? '<span class="ti-replied">↩ replied</span>' : ''}
         ${actionBadge}
         <span class="ti-time">${relTime(t.latestTime)}</span>
       </div>
@@ -3401,6 +3495,7 @@ async function autoPush() {
     // Also refresh inbox view if open
     if (currentView !== 'slack') {
       INBOX.loaded = false;
+      INBOX.sentLoaded = false;
       await loadInboxDirect();
       updateInboxSidebarCounts();
     }
