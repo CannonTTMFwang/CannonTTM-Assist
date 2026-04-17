@@ -1254,7 +1254,7 @@ body{
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const SK='hg-v24',UK='hg-user-v4';
+const SK='hg-v25',UK='hg-user-v4';
 const CAT={safety:'Safety',deal:'HHLA Deal',parking:'Parking',leasing:'Leasing',vendor:'Vendor',internal:'Internal',notion:'Notion'};
 const SECMAP={safety:'7021 Hollywood Blvd — Safety',deal:'HHLA — Active Deal',parking:'Hollywood Galaxy — Parking',leasing:'Hollywood Blvd — Tenant / Leasing',vendor:'Vendor / Maintenance',internal:'Internal / Routine',notion:'Notion / Tasks & Meetings'};
 
@@ -1390,6 +1390,33 @@ const DEFAULTS=[
    section:"HHLA — Active Deal",addedBy:"Email Scan",addedTs:"Apr 16",
    cardAction:{label:"Check HHLA status ↗",prompt:"Search Outlook for the latest HHLA emails from Jim Richards at CBRE and Jackson Foo. What is the current status of the proforma and due diligence package?"}},
 
+  {id:10,urgency:'high',category:'leasing',
+   title:"HOPE Hydration lease — Whitney requests URGENT review",
+   summary:"Whitney forwarded the HOPE Hydration Updated Lease Agreement at 5:03 PM Apr 17 tagging Frank directly. She marked this matter as urgent and is requesting Frank conduct a lease review.",
+   action:"Review the HOPE Hydration lease agreement immediately and provide feedback to Whitney.",
+   source:"Whitney Donohue · Apr 17",status:'open',notes:[],
+   section:"Hollywood Blvd — Tenant / Leasing",addedBy:"Email Scan",addedTs:"Apr 17",
+   emailId:"AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo-EyodjAAAAAAAEMAADF9nlbSKfOQarLo-EyodjAAAGgc4HEAAA=",
+   cardAction:{label:"Review lease ↗",prompt:"Read the HOPE Hydration lease agreement. Whitney Donohue has flagged this as urgent and is asking Frank Wang to conduct a full lease review. What are the key terms, any red flags, and recommended next steps?"}},
+
+  {id:11,urgency:'normal',category:'parking',
+   title:"March 2026 Statement — Whitney requests parking analysis",
+   summary:"Whitney forwarded the March 2026 Statement for Hollywood Galaxy and is asking Frank to conduct a parking analysis on the report. She noted no rush on this.",
+   action:"Conduct parking analysis on March 2026 Statement for Hollywood Galaxy and report findings to Whitney.",
+   source:"Whitney Donohue · Apr 17",status:'open',notes:[],
+   section:"Hollywood Galaxy — Parking",addedBy:"Email Scan",addedTs:"Apr 17",
+   emailId:"AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo-EyodjAAAAAAAEMAADF9nlbSKfOQarLo-EyodjAAAGgc4HFAAA=",
+   cardAction:{label:"Analyze statement ↗",prompt:"Whitney Donohue forwarded the March 2026 Statement for Hollywood Galaxy and asked Frank to conduct a parking analysis. Search Outlook for this email, read the attached statement, and summarize the parking revenue, utilization, and any notable changes vs prior months."}},
+
+  {id:12,urgency:'normal',category:'vendor',
+   title:"Sycamore Caulking (SERVO-139044) — AAA Facility Services scheduling",
+   summary:"AAA Facility Services confirmed approval received for Hollywood Galaxy Sycamore Caulking Replacement (SERVO-139044). Scheduling coordinator will follow up with ETA.",
+   action:"Monitor for scheduling confirmation from AAA Facility Services. No action needed yet.",
+   source:"AAA Facility Services · Apr 16",status:'inprogress',notes:[],
+   section:"Vendor / Maintenance",addedBy:"Email Scan",addedTs:"Apr 17",
+   emailId:"AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo-EyodjAAAAAAAEMAADF9nlbSKfOQarLo-EyodjAAAGgc4HDAAA=",
+   cardAction:{label:"Check scheduling ↗",prompt:"Search Outlook for the AAA Facility Services email about Hollywood Galaxy Sycamore Caulking Replacement (SERVO-139044). What is the current scheduling status?"}},
+
   {id:13,urgency:'normal',category:'internal',
    title:"Westland Fair lockbox deposit — Wells Fargo processing, monitor for confirmation",
    summary:"Wells Fargo is still processing the debit from Westland Fair US Bank operating account. Luisa confirmed Apr 15 they will send confirmation when complete. Franci acknowledged.",
@@ -1399,7 +1426,7 @@ const DEFAULTS=[
    cardAction:{label:"Check status ↗",prompt:"Search Outlook for the Westland Fair lockbox deposit thread. What is the current status of the Wells Fargo debit processing?"}}
 ];
 
-let STATE={items:[],nextId:14,lastSync:null,processedEmailIds:new Set(),processedEmailIdsList:[]};
+let STATE={items:[],nextId:16,lastSync:null,processedEmailIds:new Set(),processedEmailIdsList:[]};
 let currentUser='Frank Wang';
 let activeView='all',activeCat=null,activeUrg='all';
 let noteTarget=null, isBusy=false;
@@ -2778,6 +2805,12 @@ function loadInboxFromActionBoardData() {
     {id:"Ggd48uj",conversationId:"conv-wf-lockbox",subject:"RE: Westland Fair Lockbox Deposit",sender:"Luisa Lenihan <llenihan@cannonmgt.com>",senderName:"Luisa Lenihan",senderEmail:"llenihan@cannonmgt.com",receivedDateTime:"2026-04-15T20:33:16.000Z",isRead:true,hasAttachments:false,importance:"normal",summary:"Wells Fargo still processing the debit from Westland US Bank operating account — confirmation coming soon.",webLink:"https://outlook.office365.com/owa/?ItemID=Ggd48ujAAA"},
     // ── APR 13 ──────────────────────────────────────────────────────────────
     {id:"Gd48tW",conversationId:"conv-service-invoice",subject:"FW: SERVICE INVOICE",sender:"Kelly Olin Federal Realty <KOlin@federalrealty.com>",senderName:"Kelly Olin",senderEmail:"KOlin@federalrealty.com",receivedDateTime:"2026-04-13T16:56:18.000Z",isRead:false,hasAttachments:true,importance:"normal",summary:"Forwarding a service invoice from Duthie Power for review and payment processing.",webLink:"https://outlook.office365.com/owa/?ItemID=Gd48tWAAA"},
+    // ── APR 17 (new emails) ────────────────────────────────────────────────
+    {id:"AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo-EyodjAAAAAAAEMAADF9nlbSKfOQarLo-EyodjAAAGgc4HFAAA=",conversationId:"conv-hg-statement-apr17",subject:"Fw: March 2026 Statement - Hollywood Galaxy",sender:"Whitney Donohue <wdonohue@cannonmgt.com>",senderName:"Whitney Donohue",senderEmail:"wdonohue@cannonmgt.com",receivedDateTime:"2026-04-17T00:04:14.000Z",isRead:true,hasAttachments:true,importance:"normal",summary:"Frank, please conduct a parking analysis on this report - no rush on this. Whitney forwarding March 2026 Statement for Hollywood Galaxy.",webLink:"https://outlook.office365.com/owa/?ItemID=AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo%2FEyodjAAAAAAAEMAADF9nlbSKfOQarLo%2FEyodjAAAGgc4HFAAA%3D&exvsurl=1&viewmodel=ReadMessageItem"},
+    {id:"AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo-EyodjAAAAAAAEMAADF9nlbSKfOQarLo-EyodjAAAGgc4HEAAA=",conversationId:"conv-hope-hydration",subject:"Re: HOPE Hydration - Updated Lease Agreement",sender:"Whitney Donohue <wdonohue@cannonmgt.com>",senderName:"Whitney Donohue",senderEmail:"wdonohue@cannonmgt.com",receivedDateTime:"2026-04-17T00:03:13.000Z",isRead:true,hasAttachments:false,importance:"high",summary:"@Frank Wang please conduct a lease review, this matter is urgent. Whitney forwarding the HOPE Hydration lease agreement for urgent review.",webLink:"https://outlook.office365.com/owa/?ItemID=AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo%2FEyodjAAAAAAAEMAADF9nlbSKfOQarLo%2FEyodjAAAGgc4HEAAA%3D&exvsurl=1&viewmodel=ReadMessageItem"},
+    {id:"AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo-EyodjAAAAAAAEMAADF9nlbSKfOQarLo-EyodjAAAGgc4HDAAA=",conversationId:"conv-sycamore-caulking",subject:"RE: 100237 Hollywood Galaxy Sycamore Caulking Replacement",sender:"AAA Facility Services <Service@AAAFacilityServices.com>",senderName:"AAA Facility Services",senderEmail:"Service@AAAFacilityServices.com",receivedDateTime:"2026-04-16T23:29:18.000Z",isRead:true,hasAttachments:false,importance:"normal",summary:"Approval received. Scheduling coordinator will follow up with ETA. Reference SERVO-139044.",webLink:"https://outlook.office365.com/owa/?ItemID=AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo%2FEyodjAAAAAAAEMAADF9nlbSKfOQarLo%2FEyodjAAAGgc4HDAAA%3D&exvsurl=1&viewmodel=ReadMessageItem"},
+    {id:"AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo-EyodjAAAAAAAEMAADF9nlbSKfOQarLo-EyodjAAAGgc4HCAAA=",conversationId:"conv-sycamore-caulking",subject:"RE: 100237 Hollywood Galaxy Sycamore Caulking Replacement",sender:"AAA Facility Services <amorris@AAAFacilityServices.com>",senderName:"AAA Facility Services",senderEmail:"amorris@AAAFacilityServices.com",receivedDateTime:"2026-04-16T23:14:12.000Z",isRead:true,hasAttachments:false,importance:"normal",summary:"Approval received, thank you. Scheduling team will be in touch with first available date for Hollywood Galaxy Sycamore caulking replacement.",webLink:"https://outlook.office365.com/owa/?ItemID=AAMkADA3ZTUxYTc1LTI4YjktNDA0MC04YTJmLTI4ZGFiYjliMWE2YgBGAAAAAADHyS2tPGKuTYG07PM5Pn2pBwDF9nlbSKfOQarLo%2FEyodjAAAAAAAEMAADF9nlbSKfOQarLo%2FEyodjAAAGgc4HCAAA%3D&exvsurl=1&viewmodel=ReadMessageItem"},
+    // ── APR 16 (continued) ──────────────────────────────────────────────────
     {id:"Gd48tV",conversationId:"conv-gc-returns",subject:"FW: Grand Canyon Center LP (Hollywood Block LLC) 2025 returns",sender:"Charity Dahlke <cdahlke@cannonmgt.com>",senderName:"Charity Dahlke",senderEmail:"cdahlke@cannonmgt.com",receivedDateTime:"2026-04-13T16:31:23.000Z",isRead:true,hasAttachments:true,importance:"normal",summary:"FYI — forwarding 2025 tax returns from Russell Saffer CPA for Grand Canyon Center LP.",webLink:"https://outlook.office365.com/owa/?ItemID=Gd48tVAAA"},
     // ── APR 10 ──────────────────────────────────────────────────────────────
     {id:"GcU5O5",conversationId:"conv-fluffy-loi",subject:"Tenant Executed - Fluffy Fluffy LOI - Former Starbucks - The Commons",sender:"Sean Retzloff Colliers <sean.retzloff@colliers.com>",senderName:"Sean Retzloff",senderEmail:"sean.retzloff@colliers.com",receivedDateTime:"2026-04-10T19:38:15.000Z",isRead:true,hasAttachments:true,importance:"normal",summary:"Fluffy Fluffy LOI signed by tenant — attached for records. Awaiting lease draft.",webLink:"https://outlook.office365.com/owa/?ItemID=GcU5O5AAA"},
@@ -3486,6 +3519,10 @@ async function sessionSync(silent=false) {
       document.getElementById('slbl').textContent = 'Synced ' + n12();
       if (!silent) toast('✓ Synced — ' + (emails.length||0) + ' emails, ' + (slack.length||0) + ' Slack msgs pushed to Render');
       logSync('✓ Session sync: ' + (emails.length||0) + ' emails · ' + (slack.length||0) + ' Slack', 'ok');
+      // ── TRIAGE NEW EMAILS INTO ACTION ITEMS ──────────────────────────────
+      if (emails.length > 0) {
+        triageNewEmails(emails);
+      }
       // Reload inbox/slack views if open
       if (currentView === 'inbox') { INBOX.loaded=false; loadInboxDirect(); }
       if (currentView === 'slack') { SLACK.loaded=false; loadSlack(false); }
@@ -3496,6 +3533,107 @@ async function sessionSync(silent=false) {
     document.getElementById('slbl').textContent = 'Sync error';
     logSync('Session sync error: ' + (e.message||'').slice(0,60), 'warn');
     if (!silent) toast('Sync failed: ' + (e.message||'unknown').slice(0,50));
+  }
+}
+
+// ── LIVE EMAIL TRIAGE PIPELINE ──────────────────────────────────────────────
+// Called by sessionSync after it successfully fetches emails from Outlook.
+// Filters to only NEW emails (not in processedEmailIdsList), then asks Claude
+// to create urgency-tagged action items for each one.
+async function triageNewEmails(allEmails) {
+  if (!allEmails || allEmails.length === 0) return;
+
+  // Restore processedEmailIds Set from serialized list
+  if (!STATE.processedEmailIds || STATE.processedEmailIds.size === 0) {
+    STATE.processedEmailIds = new Set(STATE.processedEmailIdsList || []);
+  }
+
+  // Filter to only emails not yet triaged
+  const newEmails = allEmails.filter(e => e.id && !STATE.processedEmailIds.has(e.id));
+
+  if (newEmails.length === 0) {
+    logSync('✓ Triage: all ' + allEmails.length + ' emails already processed', 'ok');
+    return;
+  }
+
+  logSync('Triaging ' + newEmails.length + ' new email(s)...', 'ok');
+
+  // Mark as processed immediately so re-runs don't double-add
+  newEmails.forEach(e => { if (e.id) STATE.processedEmailIds.add(e.id); });
+  STATE.processedEmailIdsList = Array.from(STATE.processedEmailIds);
+
+  // Process in batches of 10
+  const BATCH = 10;
+  let totalAdded = 0;
+
+  for (let i = 0; i < newEmails.length; i += BATCH) {
+    const batch = newEmails.slice(i, i + BATCH);
+    const emailList = batch.map((e, idx) =>
+      `${idx+1}. FROM: ${e.senderName || e.sender || 'Unknown'} (${e.senderEmail||''})\n   SUBJECT: ${e.subject}\n   DATE: ${e.receivedDateTime}\n   PREVIEW: ${e.summary || e.bodyPreview || ''}`
+    ).join('\n\n');
+
+    try {
+      const structured = await callClaude(
+        'Triage these emails for Frank Wang, Assistant Property Manager at Hollywood Galaxy (7021 Hollywood Blvd, LA). Create an action item for EVERY email.\n\n' + emailList + '\n\nReturn a JSON array. One object per email:\n{"title":"concise title max 8 words","summary":"1-2 sentence summary","action":"what Frank must do (or MONITOR if no action needed)","urgency":"critical|high|normal|low","category":"safety|deal|parking|leasing|vendor|internal","source":"[sender] · [date like Apr 17]","section":"7021 Hollywood Blvd — Safety|HHLA — Active Deal|Hollywood Galaxy — Parking|Hollywood Blvd — Tenant / Leasing|Vendor / Maintenance|Internal / Routine","emailId":"[the exact id field value]"}\nReturn ONLY the JSON array.',
+        'Return ONLY a valid JSON array. No markdown. No preamble.',
+        []
+      );
+
+      const match = structured && structured.match(/\[[\s\S]*\]/);
+      if (!match) continue;
+
+      let batchAdded = 0;
+      JSON.parse(match[0]).forEach(ni => {
+        if (!ni.title || ni.title.length < 3) return;
+        // Skip if this emailId already has an action item
+        if (ni.emailId && STATE.items.some(ex => ex.emailId === ni.emailId)) return;
+        const item = {
+          id: STATE.nextId++,
+          emailId: ni.emailId || null,
+          urgency: ni.urgency || 'normal',
+          category: ni.category || 'internal',
+          title: ni.title,
+          summary: ni.summary || '',
+          action: ni.action || '',
+          source: ni.source || ('Auto-scan · ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})),
+          status: 'open',
+          notes: [],
+          section: ni.section || SECMAP[ni.category] || 'Internal / Routine',
+          addedBy: 'Email Scan',
+          addedTs: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}),
+          cardAction: {
+            label: 'Ask AI ↗',
+            prompt: `Help me action this email: "${ni.title}". Summary: ${ni.summary}. Action needed: ${ni.action}`
+          }
+        };
+        STATE.items.push(item);
+        batchAdded++;
+        totalAdded++;
+      });
+
+      if (batchAdded > 0) {
+        STATE.lastSync = new Date().toISOString();
+        saveState();
+        renderTrackerList(); // update tracker badge
+        logSync('✓ Triaged batch ' + (Math.floor(i/BATCH)+1) + ': ' + batchAdded + ' new action items', 'ok');
+      }
+
+      if (i + BATCH < newEmails.length) await sleep(1500);
+
+    } catch(e) {
+      logSync('Triage error: ' + (e.message||'').slice(0,50), 'warn');
+    }
+  }
+
+  if (totalAdded > 0) {
+    STATE.lastSync = new Date().toISOString();
+    saveState();
+    toast('✓ ' + totalAdded + ' new action item' + (totalAdded !== 1 ? 's' : '') + ' from email scan');
+    logSync('✓ Triage complete: ' + totalAdded + ' action items added', 'ok');
+    // Show notification banner
+    showNewBanner(totalAdded, STATE.items.slice(-totalAdded));
+  } else {
+    logSync('✓ Triage complete — no new actionable items', 'ok');
   }
 }
 
