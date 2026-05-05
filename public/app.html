@@ -836,19 +836,25 @@ INBOX CONTEXT: Frank's live Outlook inbox has been loaded with 50 real emails in
 
 Always draft in Frank's voice: professional, warm, direct. Never send — only draft. Hard stops: legal notices, amounts >$5k, litigation.`;
 
+// Routes through Frank's Render backend (server.js holds the Anthropic API key).
+// Absolute URL means this works whether the file is opened locally or hosted anywhere.
+const BACKEND_URL = 'https://cannonttm-assist.onrender.com/api/claude';
+
 async function callWithMCP(messages) {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch(BACKEND_URL, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       model:'claude-sonnet-4-20250514',
       max_tokens:1000,
       system:SYSTEM,
-      messages,
-      mcp_servers:[{type:"url",url:"https://microsoft365.mcp.claude.com/mcp",name:"m365-mcp"}]
+      messages
     })
   });
-  if (!resp.ok) throw new Error('API '+resp.status);
+  if (!resp.ok) {
+    const txt = await resp.text().catch(()=>'');
+    throw new Error('Backend '+resp.status+': '+txt.slice(0,120));
+  }
   const data = await resp.json();
   return data.content.filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
 }
